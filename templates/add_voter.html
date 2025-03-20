@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Voter</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .form-container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: #fff;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>Add Voter</h1>
+    <div class="form-container">
+        <form id="voter-form" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="id_name">Name:</label>
+                <input type="text" name="name" id="id_name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="id_aadhaar_num">Aadhaar Number:</label>
+                <input type="text" name="aadhaar_num" id="id_aadhaar_num" maxlength="12" required>
+            </div>
+
+            <div class="form-group">
+                <label for="id_address">Address:</label>
+                <textarea name="address" id="id_address" rows="4" required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="id_constituency">Constituency:</label>
+                <input type="text" name="constituency" id="id_constituency" required>
+            </div>
+
+            <div class="form-group">
+                <label for="id_pin">PIN Code:</label>
+                <input type="text" name="pin" id="id_pin" maxlength="10" required>
+            </div>
+
+            <div class="form-group">
+                <label for="id_phone_number">Phone Number:</label>
+                <input type="text" name="phone_number" id="id_phone_number" maxlength="15" required>
+            </div>
+
+            <div class="form-group">
+                <label for="id_email">Email:</label>
+                <input type="email" name="email" id="id_email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="id_image">Upload Image:</label>
+                <input type="file" name="image" id="id_image" accept="image/*">
+            </div>
+
+            <!-- Hidden fields to store AJAX-captured data -->
+            <input type="hidden" name="fingerprint_data" id="id_fingerprint_data">
+            <input type="hidden" name="retina_data" id="id_retina_data">
+
+            <div class="form-group">
+                <button type="button" id="capture-fingerprint" class="btn btn-primary">Capture Fingerprint</button>
+            </div>
+
+            <div class="form-group">
+                <button type="button" id="capture-retina" class="btn btn-primary">Capture Retina</button>
+            </div>
+
+            <div class="form-group">
+                <label for="id_is_registered">Is Registered:</label>
+                <input type="checkbox" name="is_registered" id="id_is_registered">
+            </div>
+
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">Add Voter</button>
+                <a href="{% url 'dashboard' %}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+    <script>
+        $(document).ready(function() {
+            $('#capture-fingerprint').click(function() {
+                captureBiometric('fingerprint');
+            });
+
+            $('#capture-retina').click(function() {
+                captureBiometric('retina');
+            });
+
+            function captureBiometric(type) {
+                $(`#capture-${type}`).prop('disabled', true).text('Capturing...');
+
+                var xmlPayload = '<?xml version="1.0"?>' +
+                    '<PidOptions ver="1.0">' +
+                    '<Opts fCount="1" fType="0" iCount="0" pCount="0" format="0" pidVer="2.0" timeout="10000" posh="UNKNOWN" env="P" wadh="E0jzJ/P8UopUHAieZn8CKqS4WPMi5ZSYXgfnlfkWjrc="/>' +
+                    '<CustOpts>' +
+                    '<Param name="mantrakey" value="undefined"></Param>' +
+                    '</CustOpts>' +
+                    '</PidOptions>';
+
+                var url = "http://127.0.0.1:11100/rd/capture";
+
+                $.ajax({
+                    type: "CAPTURE", 
+                    url: url,
+                    contentType: "text/xml; charset=utf-8",
+                    data: xmlPayload,
+                    crossDomain: true, 
+                    async: true, 
+                    success: function(response) {
+                        var $response = $(response); 
+                        var fingerprintData = $response.find('fingerprintData').text(); 
+                        var retinaData = $response.find('retinaData').text(); 
+
+                        if (type === 'fingerprint') {
+                            $('#id_fingerprint_data').val(fingerprintData);
+                        } else if (type === 'retina') {
+                            $('#id_retina_data').val(retinaData);
+                        }
+
+                        alert("Biometric data captured successfully!");
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Error capturing biometric data:", error);
+                        alert("Error capturing biometric data: " + error);
+                    },
+                    complete: function() {
+                        $(`#capture-${type}`).prop('disabled', false).text(`Capture ${type.charAt(0).toUpperCase() + type.slice(1)}`);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,127 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Details</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: url('{% static "images/background.jpg" %}') no-repeat center center fixed;
+            background-size: cover;
+            background-attachment: fixed;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            width: 90%;
+            max-width: 1200px;
+            background: rgba(255, 255, 255, 0.9); 
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .left-section, .right-section {
+            padding: 20px;
+        }
+        .chart-container {
+            width: 100%;
+            height: 300px;
+        }
+        .voter-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border: 1px solid #ddd;
+            margin-bottom: 5px;
+        }
+        .btn {
+            background: #00a0f5;
+            color: white;
+            padding: 8px 12px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 5px;
+            transition: background 0.3s ease;
+        }
+        .btn:hover {
+            background: #0085d1;
+        }
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>Session Details</h1>
+    <div class="container">
+        <!-- Left Section -->
+        <div class="left-section">
+            <h2>{{ session.name }}</h2>
+            <p><strong>Constituency:</strong> {{ session.constituency }}</p>
+            <p><strong>Total Voters:</strong> {{ total_voters }}</p>
+            <p><strong>Start Time:</strong> {{ session.start_time }}</p>
+            <p><strong>End Time:</strong> {{ session.end_time }}</p>
+            <p><strong>Votes Cast:</strong> {{ total_votes }}</p>
+            
+            <!-- Chart for Candidate Votes -->
+            <h3>Voting Progress</h3>
+            <canvas id="voteChart" class="chart-container"></canvas>
+        </div>
+        
+        <!-- Right Section (Voter List) -->
+        <div class="right-section">
+            <h3>Voters in Constituency</h3>
+            <ul class="voter-list">
+                {% for voter in voters %}
+                    <li>
+                        <span>{{ voter.name }}</span>
+                        {% if voter.id in voted_voters %}
+                            <span style="color: green;">✅ Voted</span>
+                        {% else %}
+                            <a href="{% url 'scan_biometric' voter.id %}" class="btn">Vote Now</a>
+                        {% endif %}
+                    </li>
+                {% empty %}
+                    <li>No voters available.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var ctx = document.getElementById('voteChart').getContext('2d');
+            var voteChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: [{% for candidate in candidates %}"{{ candidate.name }}",{% endfor %}],
+                    datasets: [{
+                        label: 'Votes',
+                        data: [{% for candidate in candidates %}{{ candidate.total_votes }},{% endfor %}],
+                        backgroundColor: '#00a0f5',
+                        borderColor: '#007ac1',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biometric Authentication</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: url('{% static "images/background.jpg" %}') no-repeat center center fixed;
+            background-size: cover;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            width: 400px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #222;
+            margin-bottom: 15px;
+        }
+        .btn {
+            background: #00a0f5;
+            color: white;
+            padding: 12px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            display: block;
+            width: 100%;
+            margin-top: 15px;
+            border-radius: 5px;
+            transition: background 0.3s ease;
+        }
+        .btn:hover {
+            background: #0085d1;
+        }
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #555;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Scan Your Biometrics</h1>
+        <p>Scan your <strong>Fingerprint</strong> and <strong>Retina</strong> to proceed.</p>
+
+        <input type="hidden" id="voter_id" value="{{ voter_id }}">
+
+        <!-- Fingerprint Scan -->
+        <button id="scan-fingerprint" class="btn">Scan Fingerprint</button>
+        <p id="fingerprint-status" class="status"></p>
+
+        <!-- Retina Scan -->
+        <button id="scan-retina" class="btn">Scan Retina</button>
+        <p id="retina-status" class="status"></p>
+
+        <!-- Waiting for Vote -->
+        <p id="waiting-message" class="status hidden">Waiting for Vote...</p>
+
+    </div>
+
+    <script>
+        let fingerprintScanned = false;
+        let retinaScanned = false;
+        let voterId = document.getElementById("voter_id").value;
+        let socket = io.connect("http://localhost:5000");
+
+        function checkBothScanned() {
+            if (fingerprintScanned && retinaScanned) {
+                document.getElementById("waiting-message").classList.remove("hidden");
+                socket.emit("biometric_verified", { voter_id: voterId });
+            }
+        }
+
+        document.getElementById("scan-fingerprint").addEventListener("click", function () {
+            let btn = this;
+            let status = document.getElementById("fingerprint-status");
+            btn.disabled = true;
+            status.innerHTML = "Scanning Fingerprint...";
+
+            let scannedFingerprint = "simulated_fingerprint_data";
+
+            $.post(`/validate_fingerprint/${voterId}/`, { fingerprint_data: scannedFingerprint }, function(response) {
+                status.innerHTML = response.message;
+                if (response.status === "success") {
+                    fingerprintScanned = true;
+                    checkBothScanned();
+                }
+            }).fail(function() {
+                status.innerHTML = "Error capturing fingerprint ❌";
+            });
+        });
+
+        document.getElementById("scan-retina").addEventListener("click", function () {
+            let btn = this;
+            let status = document.getElementById("retina-status");
+            btn.disabled = true;
+            status.innerHTML = "Scanning Retina...";
+
+            let scannedRetina = "simulated_retina_data";
+
+            $.post(`/validate_retina/${voterId}/`, { retina_data: scannedRetina }, function(response) {
+                status.innerHTML = response.message;
+                if (response.status === "success") {
+                    retinaScanned = true;
+                    checkBothScanned();
+                }
+            }).fail(function() {
+                status.innerHTML = "Error capturing retina ❌";
+            });
+        });
+
+        socket.on("vote_received", function(data) {
+            alert("Vote Received: Candidate ID " + data.candidate_id);
+            window.location.href = `/submit-vote/${data.candidate_id}/`;
+        });
+    </script>
+
+</body>
+</html>
