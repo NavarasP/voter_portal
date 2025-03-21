@@ -120,7 +120,9 @@ def add_voter(request):
             return redirect('dashboard')  
     else:
         form = VoterForm()
-    return render(request, 'add_voter.html', {'form': form})
+        constituencies = Constituency.objects.all()
+
+    return render(request, 'add_voter.html', {'form': form, 'constituencies': constituencies})
 
 def add_candidate(request):
     if request.method == "POST":

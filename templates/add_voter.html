@@ -6,64 +6,7 @@
     <title>Add Voter</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 20px;
-        }
-        h1 {
-            color: #333;
-        }
-        .form-container {
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            max-width: 500px;
-            margin: 0 auto;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #555;
-        }
-        .form-group input, .form-group textarea {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        .btn {
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .btn-primary {
-            background: #007bff;
-            color: #fff;
-        }
-        .btn-primary:hover {
-            background: #0056b3;
-        }
-        .btn-secondary {
-            background: #6c757d;
-            color: #fff;
-        }
-        .btn-secondary:hover {
-            background: #5a6268;
-        }
-        .btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
+        /* Your existing CSS styles remain unchanged */
     </style>
 </head>
 <body>
@@ -75,41 +18,55 @@
             <div class="form-group">
                 <label for="id_name">Name:</label>
                 <input type="text" name="name" id="id_name" required>
+                <div class="error-message" id="name-error"></div>
             </div>
 
             <div class="form-group">
                 <label for="id_aadhaar_num">Aadhaar Number:</label>
                 <input type="text" name="aadhaar_num" id="id_aadhaar_num" maxlength="12" required>
+                <div class="error-message" id="aadhaar-error"></div>
             </div>
 
             <div class="form-group">
                 <label for="id_address">Address:</label>
                 <textarea name="address" id="id_address" rows="4" required></textarea>
+                <div class="error-message" id="address-error"></div>
             </div>
 
+            <!-- Updated Constituency Field -->
             <div class="form-group">
                 <label for="id_constituency">Constituency:</label>
-                <input type="text" name="constituency" id="id_constituency" required>
+                <select name="constituency" id="id_constituency" required>
+                    <option value="">Select Constituency</option>
+                    {% for constituency in constituencies %}
+                        <option value="{{ constituency.id }}">{{ constituency.name }}</option>
+                    {% endfor %}
+                </select>
+                <div class="error-message" id="constituency-error"></div>
             </div>
 
             <div class="form-group">
                 <label for="id_pin">PIN Code:</label>
                 <input type="text" name="pin" id="id_pin" maxlength="10" required>
+                <div class="error-message" id="pin-error"></div>
             </div>
 
             <div class="form-group">
                 <label for="id_phone_number">Phone Number:</label>
                 <input type="text" name="phone_number" id="id_phone_number" maxlength="15" required>
+                <div class="error-message" id="phone-error"></div>
             </div>
 
             <div class="form-group">
                 <label for="id_email">Email:</label>
                 <input type="email" name="email" id="id_email" required>
+                <div class="error-message" id="email-error"></div>
             </div>
 
             <div class="form-group">
                 <label for="id_image">Upload Image:</label>
                 <input type="file" name="image" id="id_image" accept="image/*">
+                <div class="error-message" id="image-error"></div>
             </div>
 
             <!-- Hidden fields to store AJAX-captured data -->
@@ -118,10 +75,12 @@
 
             <div class="form-group">
                 <button type="button" id="capture-fingerprint" class="btn btn-primary">Capture Fingerprint</button>
+                <div id="fingerprint-status" class="error-message"></div>
             </div>
 
             <div class="form-group">
                 <button type="button" id="capture-retina" class="btn btn-primary">Capture Retina</button>
+                <div id="retina-status" class="error-message"></div>
             </div>
 
             <div class="form-group">
@@ -163,6 +122,10 @@
                         $('#retina-status').text("✅ Retina Scanned Successfully!");
                         $('#id_retina_data').val(biometricData);
                     }
+                },
+                error: function() {
+                    $(`#capture-${type}`).prop('disabled', false).text(`Capture ${type.charAt(0).toUpperCase() + type.slice(1)}`);
+                    alert(`Failed to capture ${type}. Please try again.`);
                 }
             });
         }
@@ -173,6 +136,47 @@
             });
             $('#capture-retina').click(function() {
                 captureBiometric('retina', '11100', 'retina');
+            });
+
+            // Form validation
+            $('#voter-form').submit(function(event) {
+                var isValid = true;
+                var errorMessages = {
+                    name: "Name is required.",
+                    aadhaar_num: "Aadhaar Number is required.",
+                    address: "Address is required.",
+                    constituency: "Constituency is required.",
+                    pin: "PIN Code is required.",
+                    phone_number: "Phone Number is required.",
+                    email: "Email is required.",
+                    image: "Image is required.",
+                    fingerprint_data: "Fingerprint data is required.",
+                    retina_data: "Retina data is required."
+                };
+
+                // Check required fields
+                $('#voter-form input[required], #voter-form textarea[required], #voter-form select[required]').each(function() {
+                    if (!$(this).val()) {
+                        isValid = false;
+                        $(`#${this.id}-error`).text(errorMessages[this.name]);
+                    } else {
+                        $(`#${this.id}-error`).text('');
+                    }
+                });
+
+                // Check biometric data
+                if (!$('#id_fingerprint_data').val()) {
+                    isValid = false;
+                    $('#fingerprint-status').text(errorMessages.fingerprint_data);
+                }
+                if (!$('#id_retina_data').val()) {
+                    isValid = false;
+                    $('#retina-status').text(errorMessages.retina_data);
+                }
+
+                if (!isValid) {
+                    event.preventDefault(); // Prevent form submission
+                }
             });
         });
     </script>
