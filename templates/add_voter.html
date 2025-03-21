@@ -69,7 +69,7 @@
 <body>
     <h1>Add Voter</h1>
     <div class="form-container">
-        <form id="voter-form" method="post" enctype="multipart/form-data">
+        <form id="voter-form" method="post" action="{% url 'add_voter' %}" enctype="multipart/form-data">
             {% csrf_token %}
             
             <div class="form-group">
