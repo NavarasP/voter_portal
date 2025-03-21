@@ -113,6 +113,8 @@ def user_logout(request):
 
 
 def add_voter(request):
+    constituencies = Constituency.objects.all()
+
     if request.method == 'POST':
         form = VoterForm(request.POST, request.FILES)  
         if form.is_valid():
@@ -120,8 +122,6 @@ def add_voter(request):
             return redirect('dashboard')  
     else:
         form = VoterForm()
-        constituencies = Constituency.objects.all()
-
     return render(request, 'add_voter.html', {'form': form, 'constituencies': constituencies})
 
 def add_candidate(request):
