@@ -114,7 +114,6 @@ def user_logout(request):
 
 def add_voter(request):
     constituencies = Constituency.objects.all()
-
     if request.method == 'POST':
         form = VoterForm(request.POST, request.FILES)  
         if form.is_valid():
