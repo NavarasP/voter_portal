@@ -164,11 +164,13 @@ def submit_vote(request, candidate_id):
     if request.method == "POST":
         candidate = Candidate.objects.get(id=candidate_id)
         session = VotingSession.objects.filter(status="Active").first()
+        print(candidate,session)
 
         if session:
             vote_count, created = VoteCount.objects.get_or_create(session=session, candidate=candidate)
             vote_count.total_votes += 1
             vote_count.save()
+            print(vote_count.total_votes)
 
         return redirect('voting_interface')
 
