@@ -172,9 +172,9 @@ def submit_vote(request, candidate_id):
             vote_count.save()
             print(vote_count.total_votes)
 
-        return redirect('voting_interface')
+        return redirect('staff_dash')
 
-    return redirect('voting_interface')
+    return redirect('staff_dash')
 
 
 
