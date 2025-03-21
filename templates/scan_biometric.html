@@ -162,19 +162,41 @@
             });
         });
         socket.on("vote_received", function(data) {
+    console.log("Received vote event:", data);
+
     fetch(`/submit-vote/${data.candidate_id}/`, {
         method: "POST",
         headers: {
+            "X-CSRFToken": getCSRFToken(),
             "Content-Type": "application/json"
         },
         body: JSON.stringify({ candidate_id: data.candidate_id })
     })
     .then(response => response.json())
     .then(data => {
+        console.log("Vote API Response:", data);
         alert("Vote Recorded Successfully!");
+        window.location.href = "/staff_dash";
     })
     .catch(error => console.error("Error:", error));
 });
+
+// ✅ Function to get CSRF token from cookies
+function getCSRFToken() {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, 10) === "csrftoken=") {
+                cookieValue = decodeURIComponent(cookie.substring(10));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
 
 
     </script>
