@@ -189,10 +189,10 @@ def validate_fingerprint(request, voter_id):
         scanned_fingerprint = request.POST.get("fingerprint_data")
         voter = get_object_or_404(Voter, id=voter_id)
 
-        # if voter.fingerprint_data == scanned_fingerprint:
-        return JsonResponse({"status": "success", "message": "Fingerprint Matched ✅"})
-        # else:
-        #     return JsonResponse({"status": "error", "message": "Fingerprint Mismatch ❌"})
+        if voter.fingerprint_data == scanned_fingerprint:
+            return JsonResponse({"status": "success", "message": "Fingerprint Matched ✅"})
+        else:
+            return JsonResponse({"status": "error", "message": "Fingerprint Mismatch ❌"})
 
 def validate_retina(request, voter_id):
     """Validate the scanned retina data."""
@@ -200,10 +200,10 @@ def validate_retina(request, voter_id):
         scanned_retina = request.POST.get("retina_data")
         voter = get_object_or_404(Voter, id=voter_id)
 
-        # if voter.retina_data == scanned_retina:
-        return JsonResponse({"status": "success", "message": "Retina Matched ✅"})
-        # else:
-        #     return JsonResponse({"status": "error", "message": "Retina Mismatch ❌"})
+        if voter.retina_data == scanned_retina:
+            return JsonResponse({"status": "success", "message": "Retina Matched ✅"})
+        else:
+            return JsonResponse({"status": "error", "message": "Retina Mismatch ❌"})
 
 
 
