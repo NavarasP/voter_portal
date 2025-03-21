@@ -161,11 +161,26 @@
                 captureBiometric('retina', '11100', 'retina');
             });
         });
-
         socket.on("vote_received", function(data) {
-            alert("Vote Received: Candidate ID " + data.candidate_id);
-            window.location.href = `/submit-vote/${data.candidate_id}/`;
-        });
+    fetch(`/submit-vote/${data.candidate_id}/`, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": getCSRFToken(),
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ candidate_id: data.candidate_id })
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert("Vote Recorded Successfully!");
+    })
+    .catch(error => console.error("Error:", error));
+});
+
+function getCSRFToken() {
+    return document.querySelector("[name=csrfmiddlewaretoken]").value;
+}
+
     </script>
 
 </body>
