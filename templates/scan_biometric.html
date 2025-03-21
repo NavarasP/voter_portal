@@ -84,7 +84,7 @@
         let fingerprintScanned = false;
         let retinaScanned = false;
         let voterId = document.getElementById("voter_id").value;
-        let socket = io.connect("http://localhost:5001");
+        let socket = io.connect("http://localhost:5002");
 
         function checkBothScanned() {
             if (fingerprintScanned && retinaScanned) {
