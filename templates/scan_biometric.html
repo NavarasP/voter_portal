@@ -196,7 +196,7 @@
 
 function listenForVotes(voterId) {
             socket.on("vote_received", function (data) {
-                fetch(`/submit-vote/${sessionId}/`, {  // Pass session_id in URL
+                fetch(`/submit-vote/${sessionId}/`, {  
                     method: "POST",
                     headers: {
                         "X-CSRFToken": getCSRFToken(),
@@ -222,11 +222,11 @@ function listenForVotes(voterId) {
 
 
         $("#capture-fingerprint").click(function() {
-            captureBiometric('fingerprint', '11101', 'fingerprint');
+            captureBiometric('fingerprint', '11100', 'fingerprint');
         });
 
         $("#capture-retina").click(function() {
-            captureBiometric('retina', '11100', 'retina');
+            captureBiometric('retina', '11101', 'retina');
         });
 
         $("#verify-biometrics").click(function () {
