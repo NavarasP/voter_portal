@@ -23,9 +23,16 @@
             max-width: 500px;
             margin: 0 auto;
         }
-        .form-group {
-            margin-bottom: 15px;
+        .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #000; /* Set font color to black */
+            background-color: #fff; /* Ensure background is white for visibility */
         }
+
         .form-group label {
             display: block;
             margin-bottom: 5px;
@@ -96,7 +103,7 @@
                 <select name="constituency" id="id_constituency" required>
                     <option value="">Select Constituency</option>
                     {% for constituency in constituencies %}
-                        <option value="{{ constituency.id }}">{{ constituency.name }}</option>
+                        <option value="{{ constituency.id }}">{{ constituency.constituency }}</option>
                     {% endfor %}
                 </select>
                 <div class="error-message" id="constituency-error"></div>
