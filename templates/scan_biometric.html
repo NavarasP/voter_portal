@@ -166,21 +166,23 @@
 
                 var biometricData = $xml.find('Data').text();
 
-                if (type === 'fingerprint') {
-    fingerprintData = biometricData; // Store scanned fingerprint data
-    $('#fingerprint-status').text("✅ Fingerprint Scanned Successfully!");
-    fingerprintScanned = true;
-} else {
-    retinaData = biometricData; // Store scanned retina data
-    $('#retina-status').text("✅ Retina Scanned Successfully!");
-    retinaScanned = true;
-}
-
-                checkBothScanned();
-            } catch (err) {
-                console.error("Invalid XML response:", response);
-                alert("Failed to process biometric data. Invalid response format.");
-            }
+                
+                if (biometricData) {
+                            if (type === 'fingerprint') {
+                                $('#id_fingerprint_data').val(biometricData);
+                                $('#fingerprint-status').text("✅ Fingerprint Scanned Successfully!");
+                            } else {
+                                $('#id_retina_data').val(biometricData);
+                                $('#retina-status').text("✅ Retina Scanned Successfully!");
+                            }
+                        } else {
+                            alert(`Failed to capture ${type}. No data received.`);
+                            console.error(`No biometric data received for ${type}.`);
+                        }
+                    } catch (err) {
+                        console.error("Invalid XML response:", response);
+                        alert("Failed to process biometric data. Invalid response format.");
+                    }
         },
         error: function(xhr, status, error) {
             console.error("Error capturing biometric data:", error);
