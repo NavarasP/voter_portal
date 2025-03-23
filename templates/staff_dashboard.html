@@ -131,7 +131,7 @@
 </head>
 <body>
 
-    <h1>Admin Dashboard</h1>
+    <h1>Staff Dashboard</h1>
     <div class="dashboard-container">
 
         <div class="dashboard-section">
@@ -150,11 +150,6 @@
                             <p><strong>End Time:</strong> {{ data.session.end_time }}</p>
                             <p><strong>Total Votes:</strong> 
                                 {% with total_votes=0 %}
-                                {% for candidate_data in data.candidates_data %}
-                                    <p>{{ candidate_data.candidate.name }} : {{ candidate_data.total_votes }}</p>
-                                    {% with total_votes=total_votes|add:candidate_data.total_votes %}
-                                    {% endwith %}
-                                {% endfor %}
                                 <p><strong>Total Votes:</strong> {{ data.total_votes }}</p>
                                 {% endwith %}
                             </p>
