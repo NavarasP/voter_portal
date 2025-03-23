@@ -122,7 +122,7 @@
         let fingerprintData = "";
         let retinaData = "";
         let sessionId = "{{ session_id }}";  // Pass session ID from Django context
-        let socket = io.connect("http://localhost:8080");
+        let socket = io.connect("http://0.0.0.0:8080");
 
         function checkBothScanned() {
             if (fingerprintScanned && retinaScanned) {
@@ -141,7 +141,7 @@
         '</CustOpts>' +
         '</PidOptions>';
     
-    var url = `http://127.0.0.1:${port}/rd/capture`;
+    var url = `http://0.0.0.0:${port}/rd/capture`;
 
     $.ajax({
         type: "CAPTURE", 

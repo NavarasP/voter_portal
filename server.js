@@ -28,6 +28,7 @@ io.on("connection", (socket) => {
     });
 });
 
-server.listen(8080, () => {
-    console.log("Socket.io Server Running on http://localhost:8080");
+const PORT = 8080;
+server.listen(PORT, "0.0.0.0", () => {
+    console.log(`Socket.io Server Running on http://0.0.0.0:${PORT}`);
 });
