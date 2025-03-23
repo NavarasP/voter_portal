@@ -62,12 +62,59 @@
             font-size: 16px;
             color: #777;
         }
+        /* Success Popup */
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            width: 300px;
+            z-index: 1000;
+        }
+        .popup h3 {
+            margin-bottom: 10px;
+        }
+        .popup .close-btn {
+            margin-top: 10px;
+            cursor: pointer;
+            background: #00a0f5;
+            color: white;
+            padding: 8px;
+            border: none;
+            border-radius: 5px;
+            width: 100%;
+        }
     </style>
     <script>
         let socket = io.connect("http://localhost:8080");
 
         function submitVote(candidateId) {
             socket.emit("vote_cast", { candidate_id: candidateId });
+
+            // Listen for vote success response
+            socket.on("vote_success", function (data) {
+                if (data.success) {
+                    document.getElementById("popup-message").innerText = "✅ Vote Cast Successfully!";
+                    document.getElementById("vote-popup").style.display = "block";
+                } else {
+                    alert("❌ Error: " + data.message);
+                }
+            });
+
+            // Handle errors
+            socket.on("vote_error", function (data) {
+                alert("❌ Vote Failed: " + data.message);
+            });
+        }
+
+        function closePopup() {
+            document.getElementById("vote-popup").style.display = "none";
         }
     </script>
 </head>
@@ -91,6 +138,12 @@
         {% empty %}
             <p>No candidates available.</p>
         {% endfor %}
+    </div>
+
+    <!-- Success Popup -->
+    <div id="vote-popup" class="popup">
+        <h3 id="popup-message"></h3>
+        <button class="close-btn" onclick="closePopup()">Close</button>
     </div>
 
 </body>

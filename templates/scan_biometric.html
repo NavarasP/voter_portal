@@ -167,12 +167,15 @@
                 var biometricData = $xml.find('Data').text();
 
                 if (type === 'fingerprint') {
-                    $('#fingerprint-status').text("✅ Fingerprint Scanned Successfully!");
-                    fingerprintScanned = true;
-                } else {
-                    $('#retina-status').text("✅ Retina Scanned Successfully!");
-                    retinaScanned = true;
-                }
+    fingerprintData = biometricData; // Store scanned fingerprint data
+    $('#fingerprint-status').text("✅ Fingerprint Scanned Successfully!");
+    fingerprintScanned = true;
+} else {
+    retinaData = biometricData; // Store scanned retina data
+    $('#retina-status').text("✅ Retina Scanned Successfully!");
+    retinaScanned = true;
+}
+
                 checkBothScanned();
             } catch (err) {
                 console.error("Invalid XML response:", response);
@@ -189,6 +192,32 @@
     });
 }
 
+function listenForVotes(voterId) {
+            socket.on("vote_received", function (data) {
+                fetch(`/submit-vote/${sessionId}/`, {  // Pass session_id in URL
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": getCSRFToken(),
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ 
+                        voter_id: voterId,
+                        candidate_id: data.candidate_id 
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert("✅ Vote Recorded Successfully!");
+                        location.reload();
+                    } else {
+                        alert("❌ Error submitting vote: " + data.message);
+                    }
+                })
+                .catch(error => console.error("Error:", error));
+            });
+        }
+
 
         $("#capture-fingerprint").click(function() {
             captureBiometric('fingerprint', '11101', 'fingerprint');
@@ -202,7 +231,7 @@
             $("#waiting-message").removeClass("hidden").text("Verifying...");
 
             $.ajax({
-                url: "/verify_biometrics/",
+                url: "/verify_biometrics/${sessionId}/",
                 type: "POST",
                 headers: { "X-CSRFToken": getCSRFToken() },
                 contentType: "application/json",
