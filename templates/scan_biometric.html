@@ -58,6 +58,34 @@
         .hidden {
             display: none;
         }
+        /* Popup styling */
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            z-index: 1000;
+        }
+        .popup h3 {
+            margin-bottom: 10px;
+        }
+        .popup .close-btn {
+            margin-top: 10px;
+            cursor: pointer;
+            background: #dc3545;
+            color: white;
+            padding: 8px;
+            border: none;
+            border-radius: 5px;
+            width: 100%;
+        }
     </style>
 </head>
 <body>
@@ -65,8 +93,6 @@
     <div class="container">
         <h1>Scan Your Biometrics</h1>
         <p>Scan your <strong>Fingerprint</strong> and <strong>Retina</strong> to proceed.</p>
-
-        <input type="hidden" id="voter_id" value="{{ voter_id }}">
 
         <!-- Fingerprint Scan -->
         <button id="capture-fingerprint" class="btn">Scan Fingerprint</button>
@@ -76,11 +102,18 @@
         <button id="capture-retina" class="btn">Scan Retina</button>
         <p id="retina-status" class="status"></p>
 
-        <!-- Waiting for Vote -->
+        <!-- Verify Biometric Data -->
+        <button id="verify-biometrics" class="btn hidden">Verify</button>
         <p id="waiting-message" class="status hidden">Waiting for Vote...</p>
 
-        <!-- User Details -->
-        <div id="user-details" class="hidden"></div>
+        <!-- User Details Popup -->
+        <div id="user-popup" class="popup">
+            <h3>User Details</h3>
+            <p><strong>Name:</strong> <span id="user-name"></span></p>
+            <p><strong>Age:</strong> <span id="user-age"></span></p>
+            <p><strong>Voter ID:</strong> <span id="user-voter-id"></span></p>
+            <button class="close-btn" onclick="closePopup()">Close</button>
+        </div>
     </div>
 
     <script>
@@ -88,66 +121,62 @@
         let retinaScanned = false;
         let fingerprintData = "";
         let retinaData = "";
-        let voterId = document.getElementById("voter_id").value;
-        let socket = io.connect("http://localhost:8080"); // Update to actual server URL
+        let sessionId = "{{ session_id }}";  // Pass session ID from Django context
+        let socket = io.connect("http://localhost:8080");
 
         function checkBothScanned() {
             if (fingerprintScanned && retinaScanned) {
-                document.getElementById("waiting-message").classList.remove("hidden");
-
-                // Send biometrics for verification
-                $.ajax({
-                    url: "/verify_biometrics/",
-                    type: "POST",
-                    headers: { "X-CSRFToken": getCSRFToken() },
-                    contentType: "application/json",
-                    data: JSON.stringify({
-                        fingerprint: fingerprintData,
-                        retina: retinaData
-                    }),
-                    success: function(response) {
-                        if (response.success) {
-                            $("#waiting-message").text("✅ User Verified! Waiting for Vote...");
-                            $("#user-details").html(`
-                                <h3>User Details</h3>
-                                <p><strong>Name:</strong> ${response.user.name}</p>
-                                <p><strong>Age:</strong> ${response.user.age}</p>
-                                <p><strong>Voter ID:</strong> ${response.user.voter_id}</p>
-                            `).removeClass("hidden");
-
-                            // Start listening for votes
-                            listenForVotes();
-                        } else {
-                            alert("❌ Verification Failed! " + response.message);
-                        }
-                    },
-                    error: function() {
-                        alert("Error verifying biometrics. Please try again.");
-                    }
-                });
+                $("#verify-biometrics").removeClass("hidden");
             }
         }
 
-        function listenForVotes() {
-            console.log("Listening for votes...");
-            socket.on("vote_received", function(data) {
-                console.log("Received vote event:", data);
+        $("#verify-biometrics").click(function () {
+            $("#waiting-message").removeClass("hidden").text("Verifying...");
 
-                fetch(`/submit-vote/${data.candidate_id}/`, {
+            $.ajax({
+                url: "/verify_biometrics/",
+                type: "POST",
+                headers: { "X-CSRFToken": getCSRFToken() },
+                contentType: "application/json",
+                data: JSON.stringify({
+                    fingerprint: fingerprintData,
+                    retina: retinaData
+                }),
+                success: function (response) {
+                    if (response.success) {
+                        $("#waiting-message").text("✅ User Verified! Waiting for Vote...");
+                        $("#user-name").text(response.user.name);
+                        $("#user-age").text(response.user.age);
+                        $("#user-voter-id").text(response.user.voter_id);
+                        $("#user-popup").fadeIn();
+                        listenForVotes(response.user.voter_id);
+                    } else {
+                        alert("❌ Biometric Mismatch! Please try again.");
+                    }
+                },
+                error: function () {
+                    alert("Error verifying biometrics. Please try again.");
+                }
+            });
+        });
+
+        function listenForVotes(voterId) {
+            socket.on("vote_received", function (data) {
+                fetch(`/submit-vote/${sessionId}/`, {  // Pass session_id in URL
                     method: "POST",
                     headers: {
                         "X-CSRFToken": getCSRFToken(),
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({ voter_id: voterId, candidate_id: data.candidate_id })
+                    body: JSON.stringify({ 
+                        voter_id: voterId,
+                        candidate_id: data.candidate_id 
+                    })
                 })
                 .then(response => response.json())
                 .then(data => {
-                    console.log("Vote API Response:", data);
                     if (data.success) {
                         alert("✅ Vote Recorded Successfully!");
-                        
-                        // Reload the page to reset for the next voter
                         location.reload();
                     } else {
                         alert("❌ Error submitting vote: " + data.message);
@@ -170,6 +199,10 @@
                 }
             }
             return cookieValue;
+        }
+
+        function closePopup() {
+            $("#user-popup").fadeOut();
         }
     </script>
 
