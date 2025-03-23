@@ -226,22 +226,6 @@ def voting_interface(request, session_id):
     return render(request, 'voting_interface.html', {'session': session, 'candidates': candidates})
 
 
-@login_required
-def submit_vote(request, candidate_id):
-    if request.method == "POST":
-        candidate = Candidate.objects.get(id=candidate_id)
-        session = VotingSession.objects.filter(status="Active").first()
-        print(candidate,session)
-
-        if session:
-            vote_count, created = VoteCount.objects.get_or_create(session=session, candidate=candidate)
-            vote_count.total_votes += 1
-            vote_count.save()
-            print(vote_count.total_votes)
-
-        return redirect('staff_dash')
-
-    return redirect('staff_dash')
 
 
 
