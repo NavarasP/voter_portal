@@ -218,6 +218,7 @@ def session_details(request, session_id):
     voters = Voter.objects.filter(constituency=session.constituency)
 
     total_votes = candidates_data.aggregate(total=models.Sum('total_votes'))['total'] or 0
+    print("Candidates in session:", [f"{c.candidate.name} - {c.total_votes}" for c in candidates_data])
 
 
     context = {

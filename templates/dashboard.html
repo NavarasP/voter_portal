@@ -141,6 +141,8 @@
             <div class="session-list">
                 {% for data in session_data %}
                     <div class="session-tile">
+                        <a href="{% url 'session_details' session_id=data.session.id %}" style="text-decoration: none; color: #00a0f5;">
+
                         <div class="session-info">
                             <h3>{{ data.session.name }}</h3>
                             <p><strong>Status:</strong> 
@@ -161,6 +163,7 @@
                                 {% endwith %}
                             </p>
                         </div>
+                        </a>
                     </div>
                 {% endfor %}
             </div>
