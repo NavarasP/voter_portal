@@ -9,11 +9,40 @@ from django.core.paginator import Paginator
 import json
 from difflib import SequenceMatcher 
 import serial
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import smtplib
+
 
 
 ser = serial.Serial('/dev/ttyUSB0', 9600, timeout=1)  # Adjust for Windows: COM3, COM4, etc.
 
 
+
+def send_mail(to_email):
+    subject = 'Vote'
+    body = f'Your Vote is recived'
+
+    msg = MIMEMultipart()
+    msg['From'] = 'project3290@gmail.com'  
+    msg['To'] = to_email
+    msg['Subject'] = subject
+
+    msg.attach(MIMEText(body, 'plain'))
+
+    smtp_server = 'smtp.gmail.com'  
+    smtp_port = 587  
+
+    try:
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login('project3290@gmail.com', 'wwod hbqe pbgq hhiv')  
+        server.sendmail('project3290@gmail.com', to_email, msg.as_string())
+        server.quit()
+
+    except Exception as e:
+        print(f"Error: {e}")
+        raise
 
 
 def submit_vote(request, session_id):
@@ -26,20 +55,18 @@ def submit_vote(request, session_id):
             candidate = get_object_or_404(Candidate, id=candidate_id)
             session = get_object_or_404(VotingSession, id=session_id)
 
-            # Ensure the voter exists
             voter = get_object_or_404(Voter, id=voter_id)
 
-            # Check if the voter has already voted in this session
             if VoteCount.objects.filter(session=session, candidate=candidate, voter=voter).exists():
                 return JsonResponse({"success": False, "message": "Voter has already voted in this session."}, status=400)
 
-            # Record the vote
             vote_count, created = VoteCount.objects.get_or_create(session=session, candidate=candidate)
             vote_count.total_votes += 1
             vote_count.save()
 
-            # Send voter details to Arduino via Serial Communication
-            voter_info = f"Voter: {voter.name}, Phone: {voter.phone_number}, Email: {voter.email}\n"
+            send_mail(voter.email)
+
+            voter_info = f"Voter: {voter.name}, Phone: {voter.phone_number}\n"
             ser.write(voter_info.encode())
 
             return JsonResponse({"success": True, "message": "Vote recorded successfully!"})
