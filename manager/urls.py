@@ -18,8 +18,8 @@ urlpatterns = [
 
 
     path('scan/<int:session_id>/', views.scan_biometric, name='scan_biometric'),
-    path('validate_fingerprint/<int:voter_id>/', views.validate_fingerprint, name='validate_fingerprint'),
-    path('validate_retina/<int:voter_id>/', views.validate_retina, name='validate_retina'),
+    path("verify-biometrics/", views.verify_biometrics, name="verify_biometrics"),
+
 
 
 

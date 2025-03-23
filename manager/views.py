@@ -6,6 +6,8 @@ from django.contrib.auth.decorators import login_required
 from .models import *
 from .forms import *
 from django.core.paginator import Paginator
+import json
+from difflib import SequenceMatcher 
 
 
 
@@ -178,35 +180,47 @@ def submit_vote(request, candidate_id):
 
 
 
-def scan_biometric(request, voter_id):
-    """Render biometric scan page with voter ID."""
-    voter = get_object_or_404(Voter, id=voter_id)
-    return render(request, 'scan_biometric.html', {'voter_id': voter_id})
+def scan_biometric(request, session_id):
+    return render(request, 'scan_biometric.html',{"session_id":session_id})
 
 
 
 
-def validate_fingerprint(request, voter_id):
-    """Validate the scanned fingerprint data."""
+def is_biometric_match(stored_data, scanned_data, threshold=0.95):
+    """Check similarity between stored and scanned biometric data."""
+    similarity = SequenceMatcher(None, stored_data, scanned_data).ratio()
+    return similarity >= threshold  # Match if similarity is 95% or higher
+
+
+def verify_biometrics(request, session_id):
     if request.method == "POST":
-        scanned_fingerprint = request.POST.get("fingerprint_data")
-        voter = get_object_or_404(Voter, id=voter_id)
+        data = json.loads(request.body)
+        scanned_fingerprint = data.get("fingerprint")
+        scanned_retina = data.get("retina")
 
-        if voter.fingerprint_data == scanned_fingerprint:
-            return JsonResponse({"status": "success", "message": "Fingerprint Matched ✅"})
-        else:
-            return JsonResponse({"status": "error", "message": "Fingerprint Mismatch ❌"})
+        # Search for a matching fingerprint in the voter database
+        for voter in Voter.objects.all():
+            if is_biometric_match(voter.fingerprint_data, scanned_fingerprint):  # Fingerprint matches
+                if is_biometric_match(voter.retina_data, scanned_retina):  # Retina matches
+                    return JsonResponse({
+                        "success": True,
+                        "user": {
+                            "name": voter.name,
+                            "age": voter.age,
+                            "voter_id": voter.id,
+                            "constituency": voter.constituency.name if voter.constituency else "N/A",
+                            "address": voter.address,
+                            "phone_number": voter.phone_number
+                        },
+                        "session_id": session_id
+                    })
+                else:
+                    return JsonResponse({"success": False, "message": "Biometric Mismatch (Retina does not match)"})
+        
+        return JsonResponse({"success": False, "message": "Biometric Mismatch (Fingerprint not found)"})
 
-def validate_retina(request, voter_id):
-    """Validate the scanned retina data."""
-    if request.method == "POST":
-        scanned_retina = request.POST.get("retina_data")
-        voter = get_object_or_404(Voter, id=voter_id)
+    return JsonResponse({"success": False, "message": "Invalid request"})
 
-        if voter.retina_data == scanned_retina:
-            return JsonResponse({"status": "success", "message": "Retina Matched ✅"})
-        else:
-            return JsonResponse({"status": "error", "message": "Retina Mismatch ❌"})
 
 
 

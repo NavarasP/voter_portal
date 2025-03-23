@@ -138,7 +138,7 @@
             <h2>Voting Sessions</h2>
             <div class="session-list">
                 {% for data in session_data %}
-                <div class="session-tile" onclick="window.location.href='{% url 'scan_biometrics' data.session.id %}'">
+                <div class="session-tile" onclick="window.location.href='{% url 'scan_biometric' data.session.id %}'">
                     <div class="session-info">
                             <h3>{{ data.session.name }}</h3>
                             <p><strong>Status:</strong> 
