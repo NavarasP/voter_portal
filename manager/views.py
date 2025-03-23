@@ -15,7 +15,7 @@ import smtplib
 
 
 
-ser = serial.Serial('/dev/ttyUSB0', 9600, timeout=1)  
+# ser = serial.Serial('/dev/ttyUSB0', 9600, timeout=1)  
 
 
 
@@ -67,7 +67,7 @@ def submit_vote(request, session_id):
             send_mail(voter.email)
 
             voter_info = f"Voter: {voter.name}, Phone: {voter.phone_number}\n"
-            ser.write(voter_info.encode())
+            # ser.write(voter_info.encode())
 
             return JsonResponse({"success": True, "message": "Vote recorded successfully!"})
 
