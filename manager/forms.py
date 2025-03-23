@@ -22,3 +22,13 @@ class ConstituencyForm(forms.ModelForm):
     class Meta:
         model = Constituency
         fields = '__all__'
+
+
+class VotingSessionForm(forms.ModelForm):
+    class Meta:
+        model = VotingSession
+        fields = ["name", "constituency", "start_time", "end_time"]
+        widgets = {
+            "start_time": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            "end_time": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+        }

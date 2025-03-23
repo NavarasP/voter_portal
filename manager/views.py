@@ -15,7 +15,7 @@ import smtplib
 
 
 
-ser = serial.Serial('/dev/ttyUSB0', 9600, timeout=1)  # Adjust for Windows: COM3, COM4, etc.
+# ser = serial.Serial('/dev/ttyUSB0', 9600, timeout=1)  
 
 
 
@@ -67,7 +67,7 @@ def submit_vote(request, session_id):
             send_mail(voter.email)
 
             voter_info = f"Voter: {voter.name}, Phone: {voter.phone_number}\n"
-            ser.write(voter_info.encode())
+            # ser.write(voter_info.encode())
 
             return JsonResponse({"success": True, "message": "Vote recorded successfully!"})
 
@@ -215,7 +215,15 @@ def add_constituency(request):
 
 
 def create_session(request):
-    return redirect('home')
+    if request.method == "POST":
+        form = VotingSessionForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect("staff_dash")
+    else:
+        form = VotingSessionForm()
+
+    return render(request, "create_session.html", {"form": form})
 
 
 
