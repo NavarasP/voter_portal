@@ -136,12 +136,9 @@
     var xmlPayload = '<?xml version="1.0"?>' +
         '<PidOptions ver="1.0">' +
         `<Opts fCount="${countType === 'fingerprint' ? 1 : 0}" fType="0" iCount="${countType === 'retina' ? 1 : 0}" pCount="0" format="0" pidVer="2.0" timeout="10000" posh="UNKNOWN" env="P" wadh="E0jzJ/P8UopUHAieZn8CKqS4WPMi5ZSYXgfnlfkWjrc="/>` +
-        '<CustOpts>' +
-        '<Param name="mantrakey" value="undefined"></Param>' +
-        '</CustOpts>' +
         '</PidOptions>';
     
-    var url = `http://0.0.0.0:${port}/rd/capture`;
+    var url = `http://127.0.0.1:${port}/rd/capture`;
 
     $.ajax({
         type: "CAPTURE", 
