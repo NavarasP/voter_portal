@@ -57,8 +57,8 @@ def submit_vote(request, session_id):
 
             voter = get_object_or_404(Voter, id=voter_id)
 
-            if VoteCount.objects.filter(session=session, candidate=candidate).exists():
-                return JsonResponse({"success": False, "message": "Voter has already voted in this session."}, status=400)
+            # if VoteCount.objects.filter(session=session, candidate=candidate).exists():
+            #     return JsonResponse({"success": False, "message": "Voter has already voted in this session."}, status=400)
 
             vote_count, created = VoteCount.objects.get_or_create(session=session, candidate=candidate)
             vote_count.total_votes += 1
