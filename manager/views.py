@@ -246,7 +246,8 @@ def scan_biometric(request, session_id):
 def is_biometric_match(stored_data, scanned_data, threshold=0.50):
     """Check similarity between stored and scanned biometric data."""
     similarity = SequenceMatcher(None, stored_data, scanned_data).ratio()
-    return similarity >= threshold  # Match if similarity is 95% or higher
+    print(similarity)
+    return similarity >= threshold  
 
 
 def verify_biometrics(request):
