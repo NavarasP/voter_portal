@@ -255,10 +255,9 @@ def verify_biometrics(request, session_id):
         scanned_fingerprint = data.get("fingerprint")
         scanned_retina = data.get("retina")
 
-        # Search for a matching fingerprint in the voter database
         for voter in Voter.objects.all():
-            if is_biometric_match(voter.fingerprint_data, scanned_fingerprint):  # Fingerprint matches
-                if is_biometric_match(voter.retina_data, scanned_retina):  # Retina matches
+            if is_biometric_match(voter.fingerprint_data, scanned_fingerprint):  
+                if is_biometric_match(voter.retina_data, scanned_retina): 
                     return JsonResponse({
                         "success": True,
                         "user": {
