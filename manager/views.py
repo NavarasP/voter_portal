@@ -267,7 +267,6 @@ def verify_biometrics(request):
                         "success": True,
                         "user": {
                             "name": voter.name,
-                            "age": voter.age,
                             "voter_id": voter.id,
                             "constituency": voter.constituency.name if voter.constituency else "N/A",
                             "address": voter.address,
