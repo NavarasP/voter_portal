@@ -249,7 +249,7 @@ def is_biometric_match(stored_data, scanned_data, threshold=0.95):
     return similarity >= threshold  # Match if similarity is 95% or higher
 
 
-def verify_biometrics(request, session_id):
+def verify_biometrics(request):
     if request.method == "POST":
         data = json.loads(request.body)
         scanned_fingerprint = data.get("fingerprint")
@@ -268,7 +268,7 @@ def verify_biometrics(request, session_id):
                             "address": voter.address,
                             "phone_number": voter.phone_number
                         },
-                        "session_id": session_id
+                        # "session_id": session_id
                     })
                 else:
                     return JsonResponse({"success": False, "message": "Biometric Mismatch (Retina does not match)"})

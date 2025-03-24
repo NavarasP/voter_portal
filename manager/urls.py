@@ -18,7 +18,7 @@ urlpatterns = [
 
 
     path('scan/<int:session_id>/', views.scan_biometric, name='scan_biometric'),
-    path("verify_biometrics/<int:session_id>/", views.verify_biometrics, name="verify_biometrics"),
+    path("verify_biometrics/", views.verify_biometrics, name="verify_biometrics"),
 
 
 
