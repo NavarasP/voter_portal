@@ -12,7 +12,7 @@ import serial
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import smtplib
-
+from Levenshtein import ratio
 
 
 # ser = serial.Serial('/dev/ttyUSB0', 9600, timeout=1)  
@@ -245,7 +245,9 @@ def scan_biometric(request, session_id):
 
 def is_biometric_match(stored_data, scanned_data, threshold=0.50):
     """Check similarity between stored and scanned biometric data."""
-    similarity = SequenceMatcher(None, stored_data, scanned_data).ratio()
+    # similarity = SequenceMatcher(None, stored_data, scanned_data).ratio()
+    similarity = ratio(stored_data, scanned_data)
+
     print(similarity)
     return similarity >= threshold  
 
