@@ -233,7 +233,7 @@ function listenForVotes(voterId) {
             $("#waiting-message").removeClass("hidden").text("Verifying...");
 
             $.ajax({
-                url: "/verify_biometrics/${sessionId}/",
+                url: `/verify_biometrics/${sessionId}/`,  
                 type: "POST",
                 headers: { "X-CSRFToken": getCSRFToken() },
                 contentType: "application/json",
