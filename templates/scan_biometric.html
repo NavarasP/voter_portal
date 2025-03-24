@@ -145,8 +145,6 @@
         url: url,
         contentType: "text/xml; charset=utf-8",
         data: xmlPayload,
-        crossDomain: true, 
-        async: true, 
         success: function(response) {
             try {
                 var xmlDoc = $.parseXML(response);  
@@ -172,6 +170,8 @@
                                 $('#id_retina_data').val(biometricData);
                                 $('#retina-status').text("✅ Retina Scanned Successfully!");
                             }
+
+                            checkBothScanned(); 
                         } else {
                             alert(`Failed to capture ${type}. No data received.`);
                             console.error(`No biometric data received for ${type}.`);
