@@ -14,7 +14,7 @@ urlpatterns = [
     path('add_candidate/', views.add_candidate, name='add_candidate'),
     path('add_constituency/', views.add_constituency, name='add_constituency'),
     path('vote/<int:session_id>/', views.voting_interface, name='voting_interface'),
-    path('submit-vote/<int:candidate_id>/', views.submit_vote, name='submit_vote'),
+    path('submit-vote/<int:session_id>/', views.submit_vote, name='submit_vote'),
 
 
     path('scan/<int:session_id>/', views.scan_biometric, name='scan_biometric'),
