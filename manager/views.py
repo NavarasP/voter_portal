@@ -257,7 +257,9 @@ def verify_biometrics(request):
 
         for voter in Voter.objects.all():
             if is_biometric_match(voter.fingerprint_data, scanned_fingerprint):  
+                print("finger")
                 if is_biometric_match(voter.retina_data, scanned_retina): 
+                    print('iris')
                     return JsonResponse({
                         "success": True,
                         "user": {
