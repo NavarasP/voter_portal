@@ -110,10 +110,14 @@
         <div id="user-popup" class="popup">
             <h3>User Details</h3>
             <p><strong>Name:</strong> <span id="user-name"></span></p>
-            <p><strong>Age:</strong> <span id="user-age"></span></p>
-            <p><strong>Voter ID:</strong> <span id="user-voter-id"></span></p>
+            <p><strong>Address:</strong> <span id="user-address"></span></p>
+            <p><strong>Constituency:</strong> <span id="user-constituency"></span></p>
+            <p><strong>Aadhaar:</strong> <span id="user-aadhaar"></span></p>
+            <p><strong>Phone:</strong> <span id="user-phone"></span></p>
+            <p><strong>Email:</strong> <span id="user-email"></span></p>
             <button class="close-btn" onclick="closePopup()">Close</button>
         </div>
+        
     </div>
 
     <script>
@@ -211,6 +215,7 @@ function listenForVotes(voterId) {
                 .then(data => {
                     if (data.success) {
                         alert("✅ Vote Recorded Successfully!");
+                        socket.emit("vote_success", { candidate_id: data.candidate_id });  
                         location.reload();
                     } else {
                         alert("❌ Error submitting vote: " + data.message);
@@ -242,17 +247,23 @@ function listenForVotes(voterId) {
                     retina: retinaData
                 }),
                 success: function (response) {
-                    if (response.success) {
-                        $("#waiting-message").text("✅ User Verified! Waiting for Vote...");
-                        $("#user-name").text(response.user.name);
-                        $("#user-age").text(response.user.age);
-                        $("#user-voter-id").text(response.user.voter_id);
-                        $("#user-popup").fadeIn();
-                        listenForVotes(response.user.voter_id);
-                    } else {
-                        alert("❌ Biometric Mismatch! Please try again.");
-                    }
-                }
+    if (response.success) {
+        $("#waiting-message").text("✅ User Verified! Waiting for Vote...");
+        
+        $("#user-name").text(response.user.name);
+        $("#user-address").text(response.user.address); 
+        $("#user-constituency").text(response.user.constituency);
+        $("#user-aadhaar").text(response.user.aadhaar_num);
+        $("#user-phone").text(response.user.phone_number);
+        $("#user-email").text(response.user.email);
+
+        $("#user-popup").fadeIn();
+        listenForVotes(response.user.voter_id);
+    } else {
+        alert("❌ Biometric Mismatch! Please try again.");
+    }
+}
+
             });
         });
 

@@ -100,6 +100,7 @@
             // Listen for vote success response
             socket.on("vote_success", function (data) {
                 if (data.success) {
+                    console.log("✅ Vote Confirmed for Candidate:", data.candidate_id);
                     document.getElementById("popup-message").innerText = "✅ Vote Cast Successfully!";
                     document.getElementById("vote-popup").style.display = "block";
                 } else {
