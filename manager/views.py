@@ -57,9 +57,6 @@ def submit_vote(request, session_id):
 
             voter = get_object_or_404(Voter, id=voter_id)
 
-            # if VoteCount.objects.filter(session=session, candidate=candidate).exists():
-            #     return JsonResponse({"success": False, "message": "Voter has already voted in this session."}, status=400)
-
             vote_count, created = VoteCount.objects.get_or_create(session=session, candidate=candidate)
             vote_count.total_votes += 1
             vote_count.save()
@@ -252,17 +249,33 @@ def is_biometric_match(stored_data, scanned_data, threshold=0.20):
     return similarity >= threshold  
 
 
+import json
+from django.http import JsonResponse
+from .models import Voter, VotingSession
+
 def verify_biometrics(request):
     if request.method == "POST":
         data = json.loads(request.body)
         scanned_fingerprint = data.get("fingerprint")
         scanned_retina = data.get("retina")
+        session_id = data.get("session_id")  # Get session_id from request
+
+        try:
+            session = VotingSession.objects.get(id=session_id, status="Active")  # Ensure session is active
+        except VotingSession.DoesNotExist:
+            return JsonResponse({"success": False, "message": "Invalid or Inactive Voting Session"})
 
         for voter in Voter.objects.all():
             if is_biometric_match(voter.fingerprint_data, scanned_fingerprint):  
-                print("finger")
-                if is_biometric_match(voter.retina_data, scanned_retina): 
-                    print('iris')
+                print("fingerprint matched")
+
+                if is_biometric_match(voter.retina_data, scanned_retina):  
+                    print('iris matched')
+
+                    # **Check if voter has already voted in this session**
+                    if session.voted_users.filter(id=voter.id).exists():
+                        return JsonResponse({"success": False, "message": "Person already voted!"})
+
                     return JsonResponse({
                         "success": True,
                         "user": {
@@ -270,10 +283,16 @@ def verify_biometrics(request):
                             "voter_id": voter.id,
                             "constituency": voter.constituency.constituency if voter.constituency else "N/A",
                             "address": voter.address,
-                            "phone_number": voter.phone_number
+                            "pin": voter.pin,
+                            "phone_number": voter.phone_number,
+                            "email": voter.email,
+                            "aadhaar_num": voter.aadhaar_num,
+                            "image_url": voter.image.url if voter.image else "voter_images\download.jpg"  
                         },
-                        # "session_id": session_id
+                        "session_id": session_id
                     })
+
+
                 else:
                     return JsonResponse({"success": False, "message": "Biometric Mismatch (Retina does not match)"})
         

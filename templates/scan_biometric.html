@@ -106,17 +106,27 @@
         <button id="verify-biometrics" class="btn hidden">Verify</button>
         <p id="waiting-message" class="status hidden">Waiting for Vote...</p>
 
-        <!-- User Details Popup -->
-        <div id="user-popup" class="popup">
-            <h3>User Details</h3>
-            <p><strong>Name:</strong> <span id="user-name"></span></p>
-            <p><strong>Address:</strong> <span id="user-address"></span></p>
-            <p><strong>Constituency:</strong> <span id="user-constituency"></span></p>
-            <p><strong>Aadhaar:</strong> <span id="user-aadhaar"></span></p>
-            <p><strong>Phone:</strong> <span id="user-phone"></span></p>
-            <p><strong>Email:</strong> <span id="user-email"></span></p>
-            <button class="close-btn" onclick="closePopup()">Close</button>
-        </div>
+<!-- User Details Popup -->
+<div id="user-popup" class="popup">
+    <h3>User Details</h3>
+
+    <!-- ✅ Profile Image comes first -->
+    <p><strong>Profile Image:</strong> <br> 
+        <img id="user-image" src="" alt="Voter Image" 
+             style="max-width: 150px; border-radius: 5px; display: none;">
+    </p>
+
+    <p><strong>Name:</strong> <span id="user-name"></span></p>
+    <p><strong>Address:</strong> <span id="user-address"></span></p>
+    <p><strong>Constituency:</strong> <span id="user-constituency"></span></p>
+    <p><strong>Aadhaar:</strong> <span id="user-aadhaar"></span></p>
+    <p><strong>Phone:</strong> <span id="user-phone"></span></p>
+    <p><strong>Email:</strong> <span id="user-email"></span></p>
+    <p><strong>PIN Code:</strong> <span id="user-pin"></span></p>  
+
+    <button class="close-btn" onclick="closePopup()">Close</button>
+</div>
+
         
     </div>
 
@@ -247,21 +257,37 @@ function listenForVotes(voterId) {
                     retina: retinaData
                 }),
                 success: function (response) {
-    if (response.success) {
-        $("#waiting-message").text("✅ User Verified! Waiting for Vote...");
-        
-        $("#user-name").text(response.user.name);
-        $("#user-address").text(response.user.address); 
-        $("#user-constituency").text(response.user.constituency);
-        $("#user-aadhaar").text(response.user.aadhaar_num);
-        $("#user-phone").text(response.user.phone_number);
-        $("#user-email").text(response.user.email);
+                    if (response.success) {
+    $("#waiting-message").text("✅ User Verified! Waiting for Vote...");
+    
+    $("#user-name").text(response.user.name || "N/A");
+    $("#user-address").text(response.user.address || "N/A"); 
+    $("#user-constituency").text(response.user.constituency || "N/A");
+    $("#user-aadhaar").text(response.user.aadhaar_num || "N/A");
+    $("#user-phone").text(response.user.phone_number || "N/A");
+    $("#user-email").text(response.user.email || "N/A");
+    $("#user-pin").text(response.user.pin || "N/A");  
 
-        $("#user-popup").fadeIn();
-        listenForVotes(response.user.voter_id);
+    // Display voter image if available
+    if (response.user.image_url) {
+        $("#user-image").attr("src", response.user.image_url).show();
     } else {
-        alert("❌ Biometric Mismatch! Please try again.");
+        $("#user-image").hide(); 
     }
+
+    $("#user-popup").fadeIn();
+    listenForVotes(response.user.voter_id);
+} else {
+    // ✅ Show clear error messages based on the server response
+    let errorMessage = "❌ Biometric Mismatch! Please try again.";
+    if (response.message) {
+        errorMessage = `❌ Error: ${response.message}`;
+    }
+    
+    $("#waiting-message").text(errorMessage).css("color", "red");  // Show in red
+    alert(errorMessage);  // Show an alert box for extra visibility
+}
+
 }
 
             });
