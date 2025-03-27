@@ -272,9 +272,9 @@ def verify_biometrics(request):
                 if is_biometric_match(voter.retina_data, scanned_retina):  
                     print('iris matched')
 
-                    # **Check if voter has already voted in this session**
-                    if session.voted_users.filter(id=voter.id).exists():
-                        return JsonResponse({"success": False, "message": "Person already voted!"})
+                    # # **Check if voter has already voted in this session**
+                    # if session.voted_users.filter(id=voter.id).exists():
+                    #     return JsonResponse({"success": False, "message": "Person already voted!"})
 
                     return JsonResponse({
                         "success": True,
