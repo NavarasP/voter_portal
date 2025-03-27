@@ -260,10 +260,10 @@ def verify_biometrics(request):
         scanned_retina = data.get("retina")
         session_id = data.get("session_id")  # Get session_id from request
 
-        try:
-            session = VotingSession.objects.get(id=session_id, status="Active")  # Ensure session is active
-        except VotingSession.DoesNotExist:
-            return JsonResponse({"success": False, "message": "Invalid or Inactive Voting Session"})
+        # try:
+        #     session = VotingSession.objects.get(id=session_id, status="Active")  # Ensure session is active
+        # except VotingSession.DoesNotExist:
+        #     return JsonResponse({"success": False, "message": "Invalid or Inactive Voting Session"})
 
         for voter in Voter.objects.all():
             if is_biometric_match(voter.fingerprint_data, scanned_fingerprint):  
