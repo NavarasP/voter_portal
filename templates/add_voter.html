@@ -171,6 +171,9 @@
         </form>
     </div>
     <script>
+
+let cameraStream = null; // Global variable to store the camera stream
+
         function captureBiometric(type, port, countType) {
             $(`#capture-${type}`).prop('disabled', true).text('Capturing...');
     
@@ -230,12 +233,12 @@
         }
 
         // Function to start the live camera feed
-function startCameraFeed() {
+        function startCameraFeed() {
     let videoElement = document.getElementById("camera-feed");
 
-    // Request access to the user's webcam
     navigator.mediaDevices.getUserMedia({ video: true })
         .then(function(stream) {
+            cameraStream = stream;  // Store stream globally
             videoElement.srcObject = stream;
             videoElement.style.display = "block";  // Show video feed
             $("#face-instruction").removeClass("hidden");  // Show instruction text
@@ -246,13 +249,23 @@ function startCameraFeed() {
         });
 }
 
-// Start the camera automatically when the page loads
-$(document).ready(function() {
-    startCameraFeed();
-});
+// Function to stop the camera
+function stopCameraFeed() {
+    if (cameraStream) {
+        let tracks = cameraStream.getTracks();
+        tracks.forEach(track => track.stop());  // Stop each track
+        cameraStream = null; // Reset global variable
+    }
+    $("#camera-feed").hide();  // Hide video element
+    $("#face-instruction").hide();  // Hide instruction text
+}
+
+
 
     
         $(document).ready(function() {
+            startCameraFeed();
+
             $('#capture-fingerprint').click(function() {
                 captureBiometric('fingerprint', '11100', 'fingerprint');
             });
@@ -263,6 +276,7 @@ $(document).ready(function() {
     
             // Form validation
             $('#voter-form').submit(function(event) {
+                stopCameraFeed();
                 var isValid = true;
                 var errorMessages = {
                     name: "Name is required.",
