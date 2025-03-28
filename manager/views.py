@@ -14,9 +14,15 @@ from email.mime.multipart import MIMEMultipart
 import smtplib
 from Levenshtein import ratio
 
-
+import cv2
+import os
+import time
+import numpy as np
+from deepface import DeepFace
+import pickle
 # ser = serial.Serial('/dev/ttyUSB0', 9600, timeout=1)  
 
+camera = cv2.VideoCapture(0)
 
 
 def send_mail(to_email):
@@ -181,7 +187,19 @@ def add_voter(request):
     if request.method == 'POST':
         form = VoterForm(request.POST, request.FILES)  
         if form.is_valid():
-            form.save()
+            voter = form.save()
+            voter_folder = os.path.join('media/face_data', str(voter.id))
+            os.makedirs(voter_folder, exist_ok=True)
+            
+            for i in range(5):
+                success, frame = camera.read()
+                if not success:
+                    return JsonResponse({"message": "Camera error!", "success": False})
+                
+                image_path = os.path.join(voter_folder, f"{voter.id}_{i+1}.jpg")
+                cv2.imwrite(image_path, frame)
+                time.sleep(1)
+
             return redirect('dashboard')  
     else:
         form = VoterForm()
