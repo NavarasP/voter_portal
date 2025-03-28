@@ -102,6 +102,13 @@
         <button id="capture-retina" class="btn">Scan Retina</button>
         <p id="retina-status" class="status"></p>
 
+<!-- Live Camera Feed (Auto Start) -->
+<video id="camera-feed" width="100%" autoplay style="border-radius: 5px; display: none;"></video>
+
+<!-- Instruction Text -->
+<p id="face-instruction" class="status hidden">⚠️ Keep your face inside the frame while submitting.</p>
+
+
         <!-- Verify Biometric Data -->
         <button id="verify-biometrics" class="btn hidden">Verify</button>
         <p id="waiting-message" class="status hidden">Waiting for Vote...</p>
@@ -234,6 +241,27 @@ function listenForVotes(voterId) {
                 .catch(error => console.error("Error:", error));
             });
         }
+        // Function to start the live camera feed
+        function startCameraFeed() {
+    let videoElement = document.getElementById("camera-feed");
+
+    // Request access to the user's webcam
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(function(stream) {
+            videoElement.srcObject = stream;
+            videoElement.style.display = "block";  // Show video feed
+            $("#face-instruction").removeClass("hidden");  // Show instruction text
+        })
+        .catch(function(error) {
+            console.error("Error accessing webcam:", error);
+            alert("Error accessing camera. Please enable webcam access.");
+        });
+}
+
+
+$(document).ready(function() {
+    startCameraFeed();
+});
 
 
         $("#capture-fingerprint").click(function() {
