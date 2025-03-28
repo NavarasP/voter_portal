@@ -245,9 +245,9 @@ function listenForVotes(voterId) {
         function startCameraFeed() {
     let videoElement = document.getElementById("camera-feed");
 
-    // Request access to the user's webcam
     navigator.mediaDevices.getUserMedia({ video: true })
         .then(function(stream) {
+            cameraStream = stream;  // Store stream globally
             videoElement.srcObject = stream;
             videoElement.style.display = "block";  // Show video feed
             $("#face-instruction").removeClass("hidden");  // Show instruction text
@@ -258,6 +258,16 @@ function listenForVotes(voterId) {
         });
 }
 
+// Function to stop the camera
+function stopCameraFeed() {
+    if (cameraStream) {
+        let tracks = cameraStream.getTracks();
+        tracks.forEach(track => track.stop());  // Stop each track
+        cameraStream = null; // Reset global variable
+    }
+    $("#camera-feed").hide();  // Hide video element
+    $("#face-instruction").hide();  // Hide instruction text
+}
 
 $(document).ready(function() {
     startCameraFeed();
@@ -274,6 +284,8 @@ $(document).ready(function() {
 
         $("#verify-biometrics").click(function () {
             $("#waiting-message").removeClass("hidden").text("Verifying...");
+            stopCameraFeed()
+
 
             $.ajax({
                 url: `/verify_biometrics/`,  
