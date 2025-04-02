@@ -313,6 +313,7 @@ def verify_biometrics(request):
                 "aadhaar_num": voter.aadhaar_num,
                 "image_url": request.build_absolute_uri(voter.image.url) if voter.image else request.build_absolute_uri(settings.MEDIA_URL + 'voter_images/download.jpg')
             }
+            print("DEBUG1")
 
             # Check if already voted
             if session.voted_users.filter(id=voter.id).exists():
@@ -323,6 +324,7 @@ def verify_biometrics(request):
                     "user": user_details,
                     "already_voted": True  # Flag to indicate already voted
                 })
+            print("DEBUG2")
 
             # Verify biometrics
             if not is_biometric_match(voter.fingerprint_data, scanned_fingerprint):
