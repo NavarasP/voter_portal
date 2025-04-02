@@ -86,6 +86,11 @@
             border-radius: 5px;
             width: 100%;
         }
+        .already-voted {
+    color: #dc3545;
+    font-weight: bold;
+    margin-top: 10px;
+}
     </style>
 </head>
 <body>
@@ -116,6 +121,8 @@
 <!-- User Details Popup -->
 <div id="user-popup" class="popup">
     <h3>User Details</h3>
+    <div id="already-voted-message" class="already-voted hidden">You have already voted!</div>
+
 
     <!-- ✅ Profile Image comes first -->
     <p><strong>Profile Image:</strong> <br> 
@@ -289,11 +296,10 @@ $("#voter-form").submit(function() {
             captureBiometric('retina', '11101', 'retina');
         });
 
-        $("#verify-biometrics").click(function () {
-            stopCameraFeed();
+$("#verify-biometrics").click(function () {
+    stopCameraFeed();
     $("#waiting-message").removeClass("hidden").text("Verifying...");
     
-
     $.ajax({
         url: `/verify_biometrics/`,  
         type: "POST",
@@ -306,7 +312,16 @@ $("#voter-form").submit(function() {
         }),
         success: function (response) {
             if (response.success || response.already_voted) {
-                // Always show user details if verification succeeded or already voted
+                // Handle already voted status
+                if (response.already_voted) {
+                    $("#already-voted-message").removeClass("hidden");
+                    $("#verify-biometrics").prop("disabled", true);
+                } else {
+                    $("#already-voted-message").addClass("hidden");
+                    listenForVotes(response.user.voter_id);
+                }
+                
+                // Update UI
                 $("#waiting-message").text(response.already_voted ? 
                     "✅ User Verified (Already Voted)" : 
                     "✅ User Verified! Waiting for Vote...");
@@ -320,7 +335,7 @@ $("#voter-form").submit(function() {
                 $("#user-email").text(response.user.email || "N/A");
                 $("#user-pin").text(response.user.pin || "N/A");  
 
-                // Display voter image if available
+                // Display image
                 if (response.user.image_url) {
                     $("#user-image").attr("src", response.user.image_url).show();
                 } else {
@@ -328,19 +343,9 @@ $("#voter-form").submit(function() {
                 }
 
                 $("#user-popup").fadeIn();
-                
-                // Only listen for votes if not already voted
-                if (!response.already_voted) {
-                    listenForVotes(response.user.voter_id);
-                } else {
-                    // Disable voting interface
-                    $("#verify-biometrics").prop("disabled", true);
-                }
             } else {
-                let errorMessage = "❌ Biometric Mismatch! Please try again.";
-                if (response.message) {
-                    errorMessage = `❌ Error: ${response.message}`;
-                }
+                // Error handling
+                let errorMessage = response.message || "❌ Biometric Mismatch! Please try again.";
                 $("#waiting-message").text(errorMessage).css("color", "red");
                 alert(errorMessage);
             }
