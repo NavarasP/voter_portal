@@ -86,7 +86,6 @@ def submit_vote(request, session_id):
 
 def home(request):
     return render(request, 'login.html')
-    # return render(request, 'biometric_test.html')
 
 
 def user_login(request):
@@ -321,6 +320,7 @@ def verify_biometrics(request):
             print("\n=== DEBUGGING VOTER CHECK ===")
             print(f"Voter ID: {voter.id}")
             print(f"Session ID: {session.id}")
+            print("Refreshed session voted_users:", list(session.voted_users.all()))
             print("Current voted users in this session:", list(session.voted_users.values_list('id', flat=True)))
             print(f"Does voter exist in voted_users? {session.voted_users.filter(id=voter.id).exists()}")
 
