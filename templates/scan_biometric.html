@@ -299,6 +299,8 @@ function listenForVotes(voterId) {
         $("#verify-biometrics").click(function () {
             // First stop the camera feed
             stopCameraFeed();
+            console.log("Verify button clicked - DEBUG"); 
+
             
             // Then proceed with verification
             $("#waiting-message").removeClass("hidden").text("Verifying...");
@@ -314,8 +316,12 @@ function listenForVotes(voterId) {
                     session_id: sessionId
                 }),
                 success: function (response) {
+                    console.log("Server response:", response); // Debug point 2
+
                     if (response.success || response.already_voted) {
                         if (response.already_voted) {
+                            console.log("Already voted status:", response.already_voted); // Debug point 3
+
                         // Show already voted message
                         $("#already-voted-message").removeClass("hidden");
                         $("#verify-biometrics").prop("disabled", true);
@@ -356,6 +362,8 @@ function listenForVotes(voterId) {
                     }
                 },
                 error: function() {
+                    console.error("AJAX error:", error); // Debug point 4
+
                     $("#waiting-message").text("❌ Verification failed. Please try again.").css("color", "red");
                     // Restart camera on error
                     startCameraFeed();
