@@ -138,8 +138,7 @@
     </div>
 
     <script>
-let cameraStream = null; 
-
+        let cameraStream = null;
 
         let fingerprintScanned = false;
         let retinaScanned = false;
@@ -274,6 +273,11 @@ function stopCameraFeed() {
 
 $(document).ready(function() {
     startCameraFeed();
+
+$("#voter-form").submit(function() {
+    stopCameraFeed();  
+});
+    
 });
 
 
@@ -286,8 +290,9 @@ $(document).ready(function() {
         });
 
         $("#verify-biometrics").click(function () {
-            $("#waiting-message").removeClass("hidden").text("Verifying...");
             stopCameraFeed()
+
+            $("#waiting-message").removeClass("hidden").text("Verifying...");
 
 
             $.ajax({
@@ -341,6 +346,7 @@ $(document).ready(function() {
         }
 
         function getCSRFToken() {
+
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
         const cookies = document.cookie.split(';');
@@ -354,6 +360,7 @@ $(document).ready(function() {
     }
     return cookieValue;
 }
+
 
     </script>
 

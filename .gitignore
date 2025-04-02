@@ -5,3 +5,4 @@ manager/migrations
 manager/__pycache__
 voter/__pycache__
 db.sqlite3
+media

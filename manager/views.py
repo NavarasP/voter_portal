@@ -22,7 +22,6 @@ from deepface import DeepFace
 import pickle
 from django.conf import settings
 
-camera = cv2.VideoCapture(0)
 # ser = serial.Serial('/dev/ttyUSB0', 9600, timeout=1)  
 
 
@@ -186,6 +185,7 @@ def user_logout(request):
 
 def add_voter(request):
     constituencies = Constituency.objects.all()
+    camera = cv2.VideoCapture(0)
     if request.method == 'POST':
         form = VoterForm(request.POST, request.FILES)  
         if form.is_valid():
@@ -201,6 +201,9 @@ def add_voter(request):
                 image_path = os.path.join(voter_folder, f"{voter.id}_{i+1}.jpg")
                 cv2.imwrite(image_path, frame)
                 time.sleep(1)
+
+            camera.release()
+            cv2.destroyAllWindows()
 
             return redirect('dashboard')  
     else:
@@ -274,13 +277,17 @@ from django.http import JsonResponse
 from .models import Voter, VotingSession
 
 def verify_biometrics(request):
+    camera = cv2.VideoCapture(0)
     if request.method == "POST":
         data = json.loads(request.body)
         scanned_fingerprint = data.get("fingerprint")
         scanned_retina = data.get("retina")
         session_id = data.get("session_id")
-        
-        captured_image_path = os.path.join("media/temp", "scanned_face.jpg")
+        temp_dir = os.path.join(settings.MEDIA_ROOT, "temp")
+        os.makedirs(temp_dir, exist_ok=True)  
+
+        # ✅ Define path
+        captured_image_path = os.path.join(temp_dir, "scanned_face.jpg")
         success, frame = camera.read()
         if not success:
             return JsonResponse({"success": False, "message": "Camera error!"})
@@ -291,9 +298,11 @@ def verify_biometrics(request):
             if len(results[0]) > 0:
                 matched_voter_id = os.path.basename(os.path.dirname(results[0]['identity'][0]))
                 voter = Voter.objects.get(id=matched_voter_id)
-                session = VotingSession.objects.get(id=session_id, status="Active")  
-                if session.voted_users.filter(id=voter.id).exists():
-                    return JsonResponse({"success": False, "message": "Person already voted!"})
+                #session = VotingSession.objects.get(id=session_id, status="Active")  
+                #if session.voted_users.filter(id=voter.id).exists():
+                    #return JsonResponse({"success": False, "message": "Person already voted!"})
+                camera.release()
+                cv2.destroyAllWindows()
             
 
                 if is_biometric_match(voter.fingerprint_data, scanned_fingerprint):  
