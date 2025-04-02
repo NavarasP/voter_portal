@@ -315,6 +315,12 @@ def verify_biometrics(request):
             }
             print("DEBUG1")
 
+            print("\n=== DEBUGGING VOTER CHECK ===")
+            print(f"Voter ID: {voter.id}")
+            print(f"Session ID: {session.id}")
+            print("Current voted users in this session:", list(session.voted_users.values_list('id', flat=True)))
+            print(f"Does voter exist in voted_users? {session.voted_users.filter(id=voter.id).exists()}")
+
             # Check if already voted
             if session.voted_users.filter(id=voter.id).exists():
                 print("Already voted")
