@@ -316,12 +316,16 @@ function listenForVotes(voterId) {
                 success: function (response) {
                     if (response.success || response.already_voted) {
                         if (response.already_voted) {
-                            $("#already-voted-message").removeClass("hidden");
-                            $("#verify-biometrics").prop("disabled", true);
-                        } else {
-                            $("#already-voted-message").addClass("hidden");
-                            listenForVotes(response.user.voter_id);
-                        }
+                        // Show already voted message
+                        $("#already-voted-message").removeClass("hidden");
+                        $("#verify-biometrics").prop("disabled", true);
+                        $("#waiting-message").text("✅ Verification Complete").css("color", "red");
+                    } else {
+                        // Proceed with voting
+                        $("#already-voted-message").addClass("hidden");
+                        listenForVotes(response.user.voter_id);
+                        $("#waiting-message").text("✅ Verified! Waiting for vote...").css("color", "green");
+                    }
                         
                         $("#waiting-message").text(response.already_voted ? 
                             "✅ User Verified (Already Voted)" : 
