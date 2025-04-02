@@ -1,0 +1,361 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biometric Authentication</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: url('{% static "images/background.jpg" %}') no-repeat center center fixed;
+            background-size: cover;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            width: 400px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #222;
+            margin-bottom: 15px;
+        }
+        .btn {
+            background: #00a0f5;
+            color: white;
+            padding: 12px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            display: block;
+            width: 100%;
+            margin-top: 15px;
+            border-radius: 5px;
+            transition: background 0.3s ease;
+        }
+        .btn:hover {
+            background: #0085d1;
+        }
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #555;
+        }
+        .hidden {
+            display: none;
+        }
+        /* Popup styling */
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            z-index: 1000;
+        }
+        .popup h3 {
+            margin-bottom: 10px;
+        }
+        .popup .close-btn {
+            margin-top: 10px;
+            cursor: pointer;
+            background: #dc3545;
+            color: white;
+            padding: 8px;
+            border: none;
+            border-radius: 5px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Scan Your Biometrics</h1>
+        <p>Scan your <strong>Fingerprint</strong> and <strong>Retina</strong> to proceed.</p>
+
+        <!-- Fingerprint Scan -->
+        <button id="capture-fingerprint" class="btn">Scan Fingerprint</button>
+        <p id="fingerprint-status" class="status"></p>
+
+        <!-- Retina Scan -->
+        <button id="capture-retina" class="btn">Scan Retina</button>
+        <p id="retina-status" class="status"></p>
+
+<!-- Live Camera Feed (Auto Start) -->
+<video id="camera-feed" width="100%" autoplay style="border-radius: 5px; display: none;"></video>
+
+<!-- Instruction Text -->
+<p id="face-instruction" class="status hidden">⚠️ Keep your face inside the frame while submitting.</p>
+
+
+        <!-- Verify Biometric Data -->
+        <button id="verify-biometrics" class="btn hidden">Verify</button>
+        <p id="waiting-message" class="status hidden">Waiting for Vote...</p>
+
+<!-- User Details Popup -->
+<div id="user-popup" class="popup">
+    <h3>User Details</h3>
+
+    <!-- ✅ Profile Image comes first -->
+    <p><strong>Profile Image:</strong> <br> 
+        <img id="user-image" src="" alt="Voter Image" 
+             style="max-width: 150px; border-radius: 5px; display: none;">
+    </p>
+
+    <p><strong>Name:</strong> <span id="user-name"></span></p>
+    <p><strong>Address:</strong> <span id="user-address"></span></p>
+    <p><strong>Constituency:</strong> <span id="user-constituency"></span></p>
+    <p><strong>Aadhaar:</strong> <span id="user-aadhaar"></span></p>
+    <p><strong>Phone:</strong> <span id="user-phone"></span></p>
+    <p><strong>Email:</strong> <span id="user-email"></span></p>
+    <p><strong>PIN Code:</strong> <span id="user-pin"></span></p>  
+
+    <button class="close-btn" onclick="closePopup()">Close</button>
+</div>
+
+        
+    </div>
+
+    <script>
+let cameraStream = null; 
+
+
+        let fingerprintScanned = false;
+        let retinaScanned = false;
+        let fingerprintData = "";
+        let retinaData = "";
+        let sessionId = "{{ session_id }}";  // Pass session ID from Django context
+        let socket = io.connect("http://192.168.108.236:8080");
+
+        function checkBothScanned() {
+    if (fingerprintScanned && retinaScanned) {
+        console.log("Both biometrics scanned! Showing verify button.");
+        $("#verify-biometrics").removeClass("hidden");
+    }
+}
+
+
+        function captureBiometric(type, port, countType) {
+    $(`#capture-${type}`).prop('disabled', true).text('Capturing...');
+
+    var xmlPayload = '<?xml version="1.0"?>' +
+        '<PidOptions ver="1.0">' +
+        `<Opts fCount="${countType === 'fingerprint' ? 1 : 0}" fType="0" iCount="${countType === 'retina' ? 1 : 0}" pCount="0" format="0" pidVer="2.0" timeout="10000" posh="UNKNOWN" env="P" wadh="E0jzJ/P8UopUHAieZn8CKqS4WPMi5ZSYXgfnlfkWjrc="/>` +
+        '</PidOptions>';
+
+    var url = `http://127.0.0.1:${port}/rd/capture`;
+
+    $.ajax({
+        type: "CAPTURE",
+        url: url,
+        contentType: "text/xml; charset=utf-8",
+        data: xmlPayload,
+        success: function(response) {
+            try {
+                var xmlDoc = $.parseXML(response);
+                var $xml = $(xmlDoc);
+
+                var errCode = $xml.find('Resp').attr('errCode');
+                var errInfo = $xml.find('Resp').attr('errInfo');
+
+                if (errCode !== "0") {
+                    alert("Error: " + errInfo + " (Code: " + errCode + ")");
+                    console.error("Biometric Error:", errInfo);
+                    return;
+                }
+
+                var biometricData = $xml.find('Data').text().trim();
+
+                if (biometricData) {
+                    if (type === 'fingerprint') {
+                        fingerprintData = biometricData;  // ✅ Store captured data
+                        $('#fingerprint-status').text("✅ Fingerprint Scanned Successfully!");
+                        fingerprintScanned = true;
+                    } else {
+                        retinaData = biometricData;  // ✅ Store captured data
+                        $('#retina-status').text("✅ Retina Scanned Successfully!");
+                        retinaScanned = true;
+                    }
+                    checkBothScanned();  // ✅ Call function to check if both scans are done
+                } else {
+                    alert(`Failed to capture ${type}. No data received.`);
+                    console.error(`No biometric data received for ${type}.`);
+                }
+            } catch (err) {
+                console.error("Invalid XML response:", response);
+                alert("Failed to process biometric data. Invalid response format.");
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error("Error capturing biometric data:", error);
+            alert("Error capturing biometric data: " + error);
+        },
+        complete: function() {
+            $(`#capture-${type}`).prop('disabled', false).text(`Capture ${type.charAt(0).toUpperCase() + type.slice(1)}`);
+        }
+    });
+}
+
+
+function listenForVotes(voterId) {
+            socket.on("vote_received", function (data) {
+                fetch(`/submit-vote/${sessionId}/`, {  
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": getCSRFToken(),
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ 
+                        voter_id: voterId,
+                        candidate_id: data.candidate_id 
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert("✅ Vote Recorded Successfully!");
+                        socket.emit("vote_success", { candidate_id: data.candidate_id });  
+                        location.reload();
+                    } else {
+                        alert("❌ Error submitting vote: " + data.message);
+                    }
+                })
+                .catch(error => console.error("Error:", error));
+            });
+        }
+        // Function to start the live camera feed
+        function startCameraFeed() {
+    let videoElement = document.getElementById("camera-feed");
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(function(stream) {
+            cameraStream = stream;  // Store stream globally
+            videoElement.srcObject = stream;
+            videoElement.style.display = "block";  // Show video feed
+            $("#face-instruction").removeClass("hidden");  // Show instruction text
+        })
+        .catch(function(error) {
+            console.error("Error accessing webcam:", error);
+            alert("Error accessing camera. Please enable webcam access.");
+        });
+}
+
+// Function to stop the camera
+function stopCameraFeed() {
+    if (cameraStream) {
+        let tracks = cameraStream.getTracks();
+        tracks.forEach(track => track.stop());  // Stop each track
+        cameraStream = null; // Reset global variable
+    }
+    $("#camera-feed").hide();  // Hide video element
+    $("#face-instruction").hide();  // Hide instruction text
+}
+
+$(document).ready(function() {
+    startCameraFeed();
+});
+
+
+        $("#capture-fingerprint").click(function() {
+            captureBiometric('fingerprint', '11100', 'fingerprint');
+        });
+
+        $("#capture-retina").click(function() {
+            captureBiometric('retina', '11101', 'retina');
+        });
+
+        $("#verify-biometrics").click(function () {
+            $("#waiting-message").removeClass("hidden").text("Verifying...");
+            stopCameraFeed()
+
+
+            $.ajax({
+                url: `/verify_biometrics/`,  
+                type: "POST",
+                headers: { "X-CSRFToken": getCSRFToken() },
+                contentType: "application/json",
+                data: JSON.stringify({
+                    fingerprint: fingerprintData,
+                    retina: retinaData
+                }),
+                success: function (response) {
+                    if (response.success) {
+    $("#waiting-message").text("✅ User Verified! Waiting for Vote...");
+    
+    $("#user-name").text(response.user.name || "N/A");
+    $("#user-address").text(response.user.address || "N/A"); 
+    $("#user-constituency").text(response.user.constituency || "N/A");
+    $("#user-aadhaar").text(response.user.aadhaar_num || "N/A");
+    $("#user-phone").text(response.user.phone_number || "N/A");
+    $("#user-email").text(response.user.email || "N/A");
+    $("#user-pin").text(response.user.pin || "N/A");  
+
+    // Display voter image if available
+    if (response.user.image_url) {
+        $("#user-image").attr("src", response.user.image_url).show();
+    } else {
+        $("#user-image").hide(); 
+    }
+
+    $("#user-popup").fadeIn();
+    listenForVotes(response.user.voter_id);
+} else {
+    // ✅ Show clear error messages based on the server response
+    let errorMessage = "❌ Biometric Mismatch! Please try again.";
+    if (response.message) {
+        errorMessage = `❌ Error: ${response.message}`;
+    }
+    
+    $("#waiting-message").text(errorMessage).css("color", "red");  // Show in red
+    alert(errorMessage);  // Show an alert box for extra visibility
+}
+
+}
+
+            });
+        });
+
+        function closePopup() {
+            $("#user-popup").fadeOut();
+        }
+
+        function getCSRFToken() {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.startsWith("csrftoken=")) {
+                cookieValue = decodeURIComponent(cookie.substring(10));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+    </script>
+
+</body>
+</html>

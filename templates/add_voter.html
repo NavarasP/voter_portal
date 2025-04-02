@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Voter</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+         body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .form-container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #000; /* Set font color to black */
+            background-color: #fff; /* Ensure background is white for visibility */
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .btn {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 10px; 
+    margin-bottom: 10px; 
+}
+
+
+
+        .btn-primary {
+            background: #007bff;
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: #fff;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>Add Voter</h1>
+    <div class="form-container">
+        <form id="voter-form" method="post" action="{% url 'add_voter' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="id_name">Name:</label>
+                <input type="text" name="name" id="id_name" required>
+                <div class="error-message" id="name-error"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="id_aadhaar_num">Aadhaar Number:</label>
+                <input type="text" name="aadhaar_num" id="id_aadhaar_num" maxlength="12" required>
+                <div class="error-message" id="aadhaar-error"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="id_address">Address:</label>
+                <textarea name="address" id="id_address" rows="4" required></textarea>
+                <div class="error-message" id="address-error"></div>
+            </div>
+
+            <!-- Updated Constituency Field -->
+            <div class="form-group">
+                <label for="id_constituency">Constituency:</label>
+                <select name="constituency" id="id_constituency" required>
+                    <option value="">Select Constituency</option>
+                    {% for constituency in constituencies %}
+                        <option value="{{ constituency.id }}">{{ constituency.constituency }}</option>
+                    {% endfor %}
+                </select>
+                <div class="error-message" id="constituency-error"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="id_pin">PIN Code:</label>
+                <input type="text" name="pin" id="id_pin" maxlength="10" required>
+                <div class="error-message" id="pin-error"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="id_phone_number">Phone Number:</label>
+                <input type="text" name="phone_number" id="id_phone_number" maxlength="15" required>
+                <div class="error-message" id="phone-error"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="id_email">Email:</label>
+                <input type="email" name="email" id="id_email" required>
+                <div class="error-message" id="email-error"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="id_image">Upload Image:</label>
+                <input type="file" name="image" id="id_image" accept="image/*">
+                <div class="error-message" id="image-error"></div>
+            </div>
+
+            <!-- Hidden fields to store AJAX-captured data -->
+            <input type="hidden" name="fingerprint_data" id="id_fingerprint_data">
+            <input type="hidden" name="retina_data" id="id_retina_data">
+
+            <div class="form-group">
+                <button type="button" id="capture-fingerprint" class="btn btn-primary">Capture Fingerprint</button>
+                <div id="fingerprint-status" class="error-message"></div>
+            </div>
+            <div>
+
+            </div>
+
+            <div class="form-group">
+                <button type="button" id="capture-retina" class="btn btn-primary">Capture Retina</button>
+                <div id="retina-status" class="error-message"></div>
+            </div>
+
+            <!-- Live Camera Feed (Auto Start) -->
+    <video id="camera-feed" width="100%" autoplay style="border-radius: 5px; display: none;"></video>
+
+<!-- Instruction Text -->
+<p id="face-instruction" class="status hidden">⚠️ Keep your face inside the frame while submitting.</p>
+
+
+        
+
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">Add Voter</button>
+                <a href="{% url 'dashboard' %}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+    <script>
+
+let cameraStream = null; // Global variable to store the camera stream
+
+        function captureBiometric(type, port, countType) {
+            $(`#capture-${type}`).prop('disabled', true).text('Capturing...');
+    
+            var xmlPayload = '<?xml version="1.0"?>' +
+                '<PidOptions ver="1.0">' +
+                `<Opts fCount="${countType === 'fingerprint' ? 1 : 0}" fType="0" iCount="${countType === 'retina' ? 1 : 0}" pCount="0" format="0" pidVer="2.0" timeout="10000" posh="UNKNOWN" env="P" wadh="E0jzJ/P8UopUHAieZn8CKqS4WPMi5ZSYXgfnlfkWjrc="/>` +
+                '</PidOptions>';
+    
+            var url = `http://127.0.0.1:${port}/rd/capture`;
+    
+            $.ajax({
+                type: "CAPTURE",
+                url: url,
+                contentType: "text/xml; charset=utf-8",
+                data: xmlPayload,
+                success: function(response) {
+                    try {
+                        var xmlDoc = $.parseXML(response);
+                        var $xml = $(xmlDoc);
+    
+                        var errCode = $xml.find('Resp').attr('errCode');
+                        var errInfo = $xml.find('Resp').attr('errInfo');
+    
+                        if (errCode !== "0") {
+                            alert(`Error: ${errInfo} (Code: ${errCode})`);
+                            console.error("Biometric Error:", errInfo);
+                            return;
+                        }
+    
+                        var biometricData = $xml.find('Data').text().trim();
+    
+                        if (biometricData) {
+                            if (type === 'fingerprint') {
+                                $('#id_fingerprint_data').val(biometricData);
+                                $('#fingerprint-status').text("✅ Fingerprint Scanned Successfully!");
+                            } else {
+                                $('#id_retina_data').val(biometricData);
+                                $('#retina-status').text("✅ Retina Scanned Successfully!");
+                            }
+                        } else {
+                            alert(`Failed to capture ${type}. No data received.`);
+                            console.error(`No biometric data received for ${type}.`);
+                        }
+                    } catch (err) {
+                        console.error("Invalid XML response:", response);
+                        alert("Failed to process biometric data. Invalid response format.");
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error capturing biometric data:", error);
+                    alert(`Error capturing ${type}: ${error}`);
+                },
+                complete: function() {
+                    $(`#capture-${type}`).prop('disabled', false).text(`Capture ${type.charAt(0).toUpperCase() + type.slice(1)}`);
+                }
+            });
+        }
+
+        // Function to start the live camera feed
+        function startCameraFeed() {
+    let videoElement = document.getElementById("camera-feed");
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(function(stream) {
+            cameraStream = stream;  // Store stream globally
+            videoElement.srcObject = stream;
+            videoElement.style.display = "block";  // Show video feed
+            $("#face-instruction").removeClass("hidden");  // Show instruction text
+        })
+        .catch(function(error) {
+            console.error("Error accessing webcam:", error);
+            alert("Error accessing camera. Please enable webcam access.");
+        });
+}
+
+// Function to stop the camera
+function stopCameraFeed() {
+    if (cameraStream) {
+        let tracks = cameraStream.getTracks();
+        tracks.forEach(track => track.stop());  // Stop each track
+        cameraStream = null; // Reset global variable
+    }
+    $("#camera-feed").hide();  // Hide video element
+    $("#face-instruction").hide();  // Hide instruction text
+}
+
+
+
+    
+        $(document).ready(function() {
+            startCameraFeed();
+
+            $('#capture-fingerprint').click(function() {
+                captureBiometric('fingerprint', '11100', 'fingerprint');
+            });
+    
+            $('#capture-retina').click(function() {
+                captureBiometric('retina', '11101', 'retina');
+            });
+    
+            // Form validation
+            $('#voter-form').submit(function(event) {
+                stopCameraFeed();
+                var isValid = true;
+                var errorMessages = {
+                    name: "Name is required.",
+                    aadhaar_num: "Aadhaar Number is required.",
+                    address: "Address is required.",
+                    constituency: "Constituency is required.",
+                    pin: "PIN Code is required.",
+                    phone_number: "Phone Number is required.",
+                    email: "Email is required.",
+                    image: "Image is required.",
+                    fingerprint_data: "Fingerprint data is required.",
+                    retina_data: "Retina data is required."
+                };
+    
+                // Check required fields
+                $('#voter-form input[required], #voter-form textarea[required], #voter-form select[required]').each(function() {
+                    if (!$(this).val()) {
+                        isValid = false;
+                        $(`#${this.id}-error`).text(errorMessages[this.name]);
+                    } else {
+                        $(`#${this.id}-error`).text('');
+                    }
+                });
+    
+                if (!$('#id_fingerprint_data').val()) {
+                    isValid = false;
+                    $('#fingerprint-status').text(errorMessages.fingerprint_data);
+                }
+                if (!$('#id_retina_data').val()) {
+                    isValid = false;
+                    $('#retina-status').text(errorMessages.retina_data);
+                }
+    
+                if (!isValid) {
+                    event.preventDefault(); 
+                }
+            });
+        });
+    </script>
+    
+</body>
+</html>
