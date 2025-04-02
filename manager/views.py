@@ -278,71 +278,87 @@ from .models import Voter, VotingSession
 def verify_biometrics(request):
     camera = cv2.VideoCapture(0)
     if request.method == "POST":
-        data = json.loads(request.body)
-        scanned_fingerprint = data.get("fingerprint")
-        scanned_retina = data.get("retina")
-        session_id = data.get("session_id")
-        
-        captured_image_path = os.path.join("media/temp", "scanned_face.jpg")
-        success, frame = camera.read()
-        if not success:
-            return JsonResponse({"success": False, "message": "Camera error!"})
-        
-        
-        cv2.imwrite(captured_image_path, frame)
-
-        
         try:
-            results = DeepFace.find(img_path=captured_image_path, db_path="media/face_data", model_name="Facenet512")
-            if len(results[0]) > 0:
-                matched_voter_id = os.path.basename(os.path.dirname(results[0]['identity'][0]))
-                voter = Voter.objects.get(id=matched_voter_id)
-                session = VotingSession.objects.get(id=session_id, status="Active")  
-
-                camera.release()
-                cv2.destroyAllWindows() 
-                
-                # Prepare user details response (moved outside the if condition)
-                user_details = {
-                    "name": voter.name,
-                    "voter_id": voter.id,
-                    "constituency": voter.constituency.constituency if voter.constituency else "N/A",
-                    "address": voter.address,
-                    "pin": voter.pin,
-                    "phone_number": voter.phone_number,
-                    "email": voter.email,
-                    "aadhaar_num": voter.aadhaar_num,
-                    "image_url": request.build_absolute_uri(voter.image.url) if voter.image else request.build_absolute_uri(settings.MEDIA_URL + 'voter_images/download.jpg')
-                }
-
-                
-                if session.voted_users.filter(id=voter.id).exists():
-                    return JsonResponse({
-                        "success": False, 
-                        "message": "You have already voted!",
-                        "user": user_details,
-                        "already_voted": True  # Flag to indicate already voted
-                    })
+            data = json.loads(request.body)
+            scanned_fingerprint = data.get("fingerprint")
+            scanned_retina = data.get("retina")
+            session_id = data.get("session_id")
             
-                if is_biometric_match(voter.fingerprint_data, scanned_fingerprint):  
-                    if is_biometric_match(voter.retina_data, scanned_retina):  
-                        return JsonResponse({
-                            "success": True,
-                            "user": user_details,
-                            "session_id": session_id,
-                            "already_voted": False
-                        })
-                    else:
-                        return JsonResponse({"success": False, "message": "Biometric Mismatch (Retina does not match)"})
-                else:
-                    return JsonResponse({"success": False, "message": "Biometric Mismatch (Fingerprint does not match)"})
-            else:
+            # Capture face image
+            captured_image_path = os.path.join("media/temp", "scanned_face.jpg")
+            success, frame = camera.read()
+            if not success:
+                return JsonResponse({"success": False, "message": "Camera error!"})
+            
+            cv2.imwrite(captured_image_path, frame)
+
+            # Perform face recognition
+            results = DeepFace.find(img_path=captured_image_path, db_path="media/face_data", model_name="Facenet512")
+            if len(results[0]) == 0:
                 return JsonResponse({"success": False, "message": "Face not recognized"})
+
+            matched_voter_id = os.path.basename(os.path.dirname(results[0]['identity'][0]))
+            voter = Voter.objects.get(id=matched_voter_id)
+            session = VotingSession.objects.get(id=session_id, status="Active")  
+
+            # Prepare user details response (common for all cases)
+            user_details = {
+                "name": voter.name,
+                "voter_id": voter.id,
+                "constituency": voter.constituency.constituency if voter.constituency else "N/A",
+                "address": voter.address,
+                "pin": voter.pin,
+                "phone_number": voter.phone_number,
+                "email": voter.email,
+                "aadhaar_num": voter.aadhaar_num,
+                "image_url": request.build_absolute_uri(voter.image.url) if voter.image else request.build_absolute_uri(settings.MEDIA_URL + 'voter_images/download.jpg')
+            }
+
+            # Check if already voted
+            if session.voted_users.filter(id=voter.id).exists():
+                print("Already voted")
+                return JsonResponse({
+                    "success": True,  # Changed to True because verification succeeded
+                    "message": "You have already voted!",
+                    "user": user_details,
+                    "already_voted": True  # Flag to indicate already voted
+                })
+
+            # Verify biometrics
+            if not is_biometric_match(voter.fingerprint_data, scanned_fingerprint):
+                return JsonResponse({
+                    "success": False, 
+                    "message": "Biometric Mismatch (Fingerprint does not match)",
+                    "user": user_details
+                })
+                
+            if not is_biometric_match(voter.retina_data, scanned_retina):
+                return JsonResponse({
+                    "success": False, 
+                    "message": "Biometric Mismatch (Retina does not match)",
+                    "user": user_details
+                })
+
+            # All checks passed - successful verification
+            return JsonResponse({
+                "success": True,
+                "user": user_details,
+                "session_id": session_id,
+                "already_voted": False
+            })
+
+        except Voter.DoesNotExist:
+            return JsonResponse({"success": False, "message": "Voter not found"})
+        except VotingSession.DoesNotExist:
+            return JsonResponse({"success": False, "message": "Invalid voting session"})
         except Exception as e:
-            return JsonResponse({"success": False, "message": f"Error: {e}"})
+            return JsonResponse({"success": False, "message": f"Error: {str(e)}"})
+        finally:
+            # Ensure camera is always released
+            camera.release()
+            cv2.destroyAllWindows()
 
     return JsonResponse({"success": False, "message": "Invalid request"})
-
 
 
 def session_details(request, session_id):
