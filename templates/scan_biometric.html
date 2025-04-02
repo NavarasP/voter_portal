@@ -152,7 +152,7 @@
         let fingerprintData = "";
         let retinaData = "";
         let sessionId = "{{ session_id }}";  // Pass session ID from Django context
-        let socket = io.connect("http://192.168.108.236:8080");
+        let socket = io.connect("http://192.168.31.132:8080");
 
         function checkBothScanned() {
     if (fingerprintScanned && retinaScanned) {
