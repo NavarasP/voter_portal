@@ -250,42 +250,43 @@ function listenForVotes(voterId) {
                 .catch(error => console.error("Error:", error));
             });
         }
-        // Function to start the live camera feed
         function startCameraFeed() {
-    let videoElement = document.getElementById("camera-feed");
+            let videoElement = document.getElementById("camera-feed");
+            
+            // Stop any existing stream first
+            stopCameraFeed();
+            
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(stream) {
+                    cameraStream = stream;
+                    videoElement.srcObject = stream;
+                    videoElement.style.display = "block";
+                    $("#face-instruction").removeClass("hidden");
+                })
+                .catch(function(error) {
+                    console.error("Error accessing webcam:", error);
+                    alert("Error accessing camera. Please enable webcam access.");
+                });
+        }
 
-    navigator.mediaDevices.getUserMedia({ video: true })
-        .then(function(stream) {
-            cameraStream = stream;  // Store stream globally
-            videoElement.srcObject = stream;
-            videoElement.style.display = "block";  // Show video feed
-            $("#face-instruction").removeClass("hidden");  // Show instruction text
-        })
-        .catch(function(error) {
-            console.error("Error accessing webcam:", error);
-            alert("Error accessing camera. Please enable webcam access.");
+        function stopCameraFeed() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => {
+                    track.stop();  // Stop each track
+                });
+                cameraStream = null;
+                
+                // Clear the video element
+                let videoElement = document.getElementById("camera-feed");
+                videoElement.srcObject = null;
+                videoElement.style.display = "none";
+                $("#face-instruction").addClass("hidden");
+            }
+        }
+
+        $(document).ready(function() {
+            startCameraFeed();
         });
-}
-
-// Function to stop the camera
-function stopCameraFeed() {
-    if (cameraStream) {
-        let tracks = cameraStream.getTracks();
-        tracks.forEach(track => track.stop());  // Stop each track
-        cameraStream = null; // Reset global variable
-    }
-    $("#camera-feed").hide();  // Hide video element
-    $("#face-instruction").hide();  // Hide instruction text
-}
-
-$(document).ready(function() {
-    startCameraFeed();
-
-$("#voter-form").submit(function() {
-    stopCameraFeed();  
-});
-    
-});
 
 
         $("#capture-fingerprint").click(function() {
@@ -295,87 +296,87 @@ $("#voter-form").submit(function() {
         $("#capture-retina").click(function() {
             captureBiometric('retina', '11101', 'retina');
         });
+        $("#verify-biometrics").click(function () {
+            // First stop the camera feed
+            stopCameraFeed();
+            
+            // Then proceed with verification
+            $("#waiting-message").removeClass("hidden").text("Verifying...");
+            
+            $.ajax({
+                url: `/verify_biometrics/`,
+                type: "POST",
+                headers: { "X-CSRFToken": getCSRFToken() },
+                contentType: "application/json",
+                data: JSON.stringify({
+                    fingerprint: fingerprintData,
+                    retina: retinaData,
+                    session_id: sessionId
+                }),
+                success: function (response) {
+                    if (response.success || response.already_voted) {
+                        if (response.already_voted) {
+                            $("#already-voted-message").removeClass("hidden");
+                            $("#verify-biometrics").prop("disabled", true);
+                        } else {
+                            $("#already-voted-message").addClass("hidden");
+                            listenForVotes(response.user.voter_id);
+                        }
+                        
+                        $("#waiting-message").text(response.already_voted ? 
+                            "✅ User Verified (Already Voted)" : 
+                            "✅ User Verified! Waiting for Vote...");
+                        
+                        // Populate user details
+                        $("#user-name").text(response.user.name || "N/A");
+                        $("#user-address").text(response.user.address || "N/A"); 
+                        $("#user-constituency").text(response.user.constituency || "N/A");
+                        $("#user-aadhaar").text(response.user.aadhaar_num || "N/A");
+                        $("#user-phone").text(response.user.phone_number || "N/A");
+                        $("#user-email").text(response.user.email || "N/A");
+                        $("#user-pin").text(response.user.pin || "N/A");
 
-$("#verify-biometrics").click(function () {
-    stopCameraFeed();
-    $("#waiting-message").removeClass("hidden").text("Verifying...");
-    
-    $.ajax({
-        url: `/verify_biometrics/`,  
-        type: "POST",
-        headers: { "X-CSRFToken": getCSRFToken() },
-        contentType: "application/json",
-        data: JSON.stringify({
-            fingerprint: fingerprintData,
-            retina: retinaData,
-            session_id: sessionId
-        }),
-        success: function (response) {
-            if (response.success || response.already_voted) {
-                // Handle already voted status
-                if (response.already_voted) {
-                    $("#already-voted-message").removeClass("hidden");
-                    $("#verify-biometrics").prop("disabled", true);
-                } else {
-                    $("#already-voted-message").addClass("hidden");
-                    listenForVotes(response.user.voter_id);
+                        if (response.user.image_url) {
+                            $("#user-image").attr("src", response.user.image_url).show();
+                        } else {
+                            $("#user-image").hide(); 
+                        }
+
+                        $("#user-popup").fadeIn();
+                    } else {
+                        let errorMessage = response.message || "❌ Biometric Mismatch! Please try again.";
+                        $("#waiting-message").text(errorMessage).css("color", "red");
+                        alert(errorMessage);
+                        // Restart camera if verification fails
+                        startCameraFeed();
+                    }
+                },
+                error: function() {
+                    $("#waiting-message").text("❌ Verification failed. Please try again.").css("color", "red");
+                    // Restart camera on error
+                    startCameraFeed();
                 }
-                
-                // Update UI
-                $("#waiting-message").text(response.already_voted ? 
-                    "✅ User Verified (Already Voted)" : 
-                    "✅ User Verified! Waiting for Vote...");
-                
-                // Populate user details
-                $("#user-name").text(response.user.name || "N/A");
-                $("#user-address").text(response.user.address || "N/A"); 
-                $("#user-constituency").text(response.user.constituency || "N/A");
-                $("#user-aadhaar").text(response.user.aadhaar_num || "N/A");
-                $("#user-phone").text(response.user.phone_number || "N/A");
-                $("#user-email").text(response.user.email || "N/A");
-                $("#user-pin").text(response.user.pin || "N/A");  
+            });
+        });
 
-                // Display image
-                if (response.user.image_url) {
-                    $("#user-image").attr("src", response.user.image_url).show();
-                } else {
-                    $("#user-image").hide(); 
-                }
-
-                $("#user-popup").fadeIn();
-            } else {
-                // Error handling
-                let errorMessage = response.message || "❌ Biometric Mismatch! Please try again.";
-                $("#waiting-message").text(errorMessage).css("color", "red");
-                alert(errorMessage);
-            }
-        },
-        error: function() {
-            $("#waiting-message").text("❌ Verification failed. Please try again.").css("color", "red");
-        }
-    });
-});
         function closePopup() {
             $("#user-popup").fadeOut();
         }
 
         function getCSRFToken() {
-
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.startsWith("csrftoken=")) {
-                cookieValue = decodeURIComponent(cookie.substring(10));
-                break;
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.startsWith("csrftoken=")) {
+                        cookieValue = decodeURIComponent(cookie.substring(10));
+                        break;
+                    }
+                }
             }
+            return cookieValue;
         }
-    }
-    return cookieValue;
-}
-
-
     </script>
 
 </body>
