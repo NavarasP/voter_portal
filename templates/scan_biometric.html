@@ -290,57 +290,66 @@ $("#voter-form").submit(function() {
         });
 
         $("#verify-biometrics").click(function () {
-            stopCameraFeed()
-
-            $("#waiting-message").removeClass("hidden").text("Verifying...");
-
-
-            $.ajax({
-                url: `/verify_biometrics/`,  
-                type: "POST",
-                headers: { "X-CSRFToken": getCSRFToken() },
-                contentType: "application/json",
-                data: JSON.stringify({
-                    fingerprint: fingerprintData,
-                    retina: retinaData
-                }),
-                success: function (response) {
-                    if (response.success) {
-    $("#waiting-message").text("✅ User Verified! Waiting for Vote...");
+            stopCameraFeed();
+    $("#waiting-message").removeClass("hidden").text("Verifying...");
     
-    $("#user-name").text(response.user.name || "N/A");
-    $("#user-address").text(response.user.address || "N/A"); 
-    $("#user-constituency").text(response.user.constituency || "N/A");
-    $("#user-aadhaar").text(response.user.aadhaar_num || "N/A");
-    $("#user-phone").text(response.user.phone_number || "N/A");
-    $("#user-email").text(response.user.email || "N/A");
-    $("#user-pin").text(response.user.pin || "N/A");  
 
-    // Display voter image if available
-    if (response.user.image_url) {
-        $("#user-image").attr("src", response.user.image_url).show();
-    } else {
-        $("#user-image").hide(); 
-    }
+    $.ajax({
+        url: `/verify_biometrics/`,  
+        type: "POST",
+        headers: { "X-CSRFToken": getCSRFToken() },
+        contentType: "application/json",
+        data: JSON.stringify({
+            fingerprint: fingerprintData,
+            retina: retinaData,
+            session_id: sessionId
+        }),
+        success: function (response) {
+            if (response.success || response.already_voted) {
+                // Always show user details if verification succeeded or already voted
+                $("#waiting-message").text(response.already_voted ? 
+                    "✅ User Verified (Already Voted)" : 
+                    "✅ User Verified! Waiting for Vote...");
+                
+                // Populate user details
+                $("#user-name").text(response.user.name || "N/A");
+                $("#user-address").text(response.user.address || "N/A"); 
+                $("#user-constituency").text(response.user.constituency || "N/A");
+                $("#user-aadhaar").text(response.user.aadhaar_num || "N/A");
+                $("#user-phone").text(response.user.phone_number || "N/A");
+                $("#user-email").text(response.user.email || "N/A");
+                $("#user-pin").text(response.user.pin || "N/A");  
 
-    $("#user-popup").fadeIn();
-    listenForVotes(response.user.voter_id);
-} else {
-    // ✅ Show clear error messages based on the server response
-    let errorMessage = "❌ Biometric Mismatch! Please try again.";
-    if (response.message) {
-        errorMessage = `❌ Error: ${response.message}`;
-    }
-    
-    $("#waiting-message").text(errorMessage).css("color", "red");  // Show in red
-    alert(errorMessage);  // Show an alert box for extra visibility
-}
+                // Display voter image if available
+                if (response.user.image_url) {
+                    $("#user-image").attr("src", response.user.image_url).show();
+                } else {
+                    $("#user-image").hide(); 
+                }
 
-}
-
-            });
-        });
-
+                $("#user-popup").fadeIn();
+                
+                // Only listen for votes if not already voted
+                if (!response.already_voted) {
+                    listenForVotes(response.user.voter_id);
+                } else {
+                    // Disable voting interface
+                    $("#verify-biometrics").prop("disabled", true);
+                }
+            } else {
+                let errorMessage = "❌ Biometric Mismatch! Please try again.";
+                if (response.message) {
+                    errorMessage = `❌ Error: ${response.message}`;
+                }
+                $("#waiting-message").text(errorMessage).css("color", "red");
+                alert(errorMessage);
+            }
+        },
+        error: function() {
+            $("#waiting-message").text("❌ Verification failed. Please try again.").css("color", "red");
+        }
+    });
+});
         function closePopup() {
             $("#user-popup").fadeOut();
         }
