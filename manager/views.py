@@ -68,6 +68,9 @@ def submit_vote(request, session_id):
             vote_count.total_votes += 1
             vote_count.save()
 
+            session.voted_users.add(voter)
+            session.save() 
+
             send_mail(voter.email)
 
             voter_info = f"Voter: {voter.name}, Phone: {voter.phone_number}\n"
