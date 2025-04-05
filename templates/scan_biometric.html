@@ -195,15 +195,15 @@
 
                 if (biometricData) {
                     if (type === 'fingerprint') {
-                        fingerprintData = biometricData;  // ✅ Store captured data
+                        fingerprintData = biometricData;  
                         $('#fingerprint-status').text("✅ Fingerprint Scanned Successfully!");
                         fingerprintScanned = true;
                     } else {
-                        retinaData = biometricData;  // ✅ Store captured data
+                        retinaData = biometricData;  
                         $('#retina-status').text("✅ Retina Scanned Successfully!");
                         retinaScanned = true;
                     }
-                    checkBothScanned();  // ✅ Call function to check if both scans are done
+                    checkBothScanned();  
                 } else {
                     alert(`Failed to capture ${type}. No data received.`);
                     console.error(`No biometric data received for ${type}.`);
