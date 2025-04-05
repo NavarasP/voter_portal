@@ -25,4 +25,7 @@ urlpatterns = [
 
     path('session/<int:session_id>/', views.session_details, name='session_details'),
 
+    path("test/", views.get_voted_users, name="get_voted_users"),
+
+
 ]

@@ -69,7 +69,8 @@ def submit_vote(request, session_id):
             vote_count.save()
 
             session.voted_users.add(voter)
-            session.save() 
+            session.save()
+            session.refresh_from_db()
 
             send_mail(voter.email)
 
@@ -302,6 +303,8 @@ def verify_biometrics(request):
             matched_voter_id = os.path.basename(os.path.dirname(results[0]['identity'][0]))
             voter = Voter.objects.get(id=matched_voter_id)
             session = VotingSession.objects.get(id=session_id, status="Active")  
+            session.refresh_from_db()
+
 
             # Prepare user details response (common for all cases)
             user_details = {
@@ -325,7 +328,7 @@ def verify_biometrics(request):
             print(f"Does voter exist in voted_users? {session.voted_users.filter(id=voter.id).exists()}")
 
             # Check if already voted
-            if session.voted_users.filter(id=voter.id).exists():
+            if voter.id in list(session.voted_users.values_list("id", flat=True)):
                 print("Already voted")
                 return JsonResponse({
                     "success": True,  # Changed to True because verification succeeded
@@ -391,3 +394,56 @@ def session_details(request, session_id):
         "voters":voters
     }
     return render(request, "session_details.html", context)
+
+
+
+# from django.views.decorators.csrf import csrf_exempt
+# from django.http import JsonResponse
+# from django.shortcuts import get_object_or_404
+# import json
+
+# @csrf_exempt
+# def get_voted_users(request):
+#     """
+#     POST with JSON: {'session_id': 1}
+#     Returns all voters who voted in this session
+#     """
+#     if request.method == "POST":
+#         try:
+#             data = json.loads(request.body)
+#             session_id = data.get('session_id')
+
+#             if not session_id:
+#                 return JsonResponse({'status': 'error', 'message': 'session_id is required'}, status=400)
+
+#             session = get_object_or_404(VotingSession, id=session_id)
+
+#             # Check if voter exists before adding
+#             voter_instance = get_object_or_404(Voter, id=1)  
+#             print(f"Voter exists: {Voter.objects.filter(id=1).exists()}")
+
+#             print("Before adding voter:", list(session.voted_users.all().values("id", "name")))
+#             session.voted_users.add(voter_instance)
+#             session.save()
+
+#             # Refresh session instance
+#             session.refresh_from_db()
+
+#             # Get updated voted users
+#             voted_users = session.voted_users.all().values("id", "name")
+#             print("After adding voter:", list(voted_users))
+
+#             return JsonResponse({
+#                 'status': 'success',
+#                 'session_id': session.id,
+#                 'session_name': session.name,
+#                 'voted_users_count': len(voted_users),
+#                 'voted_users': list(voted_users)
+#             })
+
+#         except json.JSONDecodeError:
+#             return JsonResponse({'status': 'error', 'message': 'Invalid JSON format'}, status=400)
+#         except Exception as e:
+#             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+#     return JsonResponse({'status': 'error', 'message': 'Only POST method is allowed'}, status=405)
